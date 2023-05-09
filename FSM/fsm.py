@@ -9,6 +9,7 @@ class FSMAddProduct(StatesGroup):
     fill_name = State()  # Состояние ожидания ввода названия товара
     fill_description = State()  # Состояние ожидания ввода описания товара
     fill_sku = State()  # Состояние ожидания ввода артикула товара
-    upload_colors = State()  # Состояние ожидания ввода цветов товара
+    fill_colors = State()  # Состояние ожидания ввода цветов товара
     fill_sizes = State()  # Состояние ожидания ввода размеров товара
     fill_price = State()  # Состояние ожидания ввода цены товара
+    fill_photo = State() # Состояние ввода загрузки фото
