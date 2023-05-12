@@ -5,10 +5,14 @@ from aiogram.fsm.state import default_state
 from FSM.fsm import FSMAddProduct
 from aiogram.types import Message, PhotoSize
 from lexicon.lexicon import LEXICON_RU
+from services.product import Product
+import json
+import redis
 
 # Инициализируем роутер уровня модуля
 router: Router = Router()
-user_dict: dict[int, dict[str, str | int | bool]] = {}
+r = redis.Redis(host='localhost', port=6379, db=0)
+#user_dict: dict[int, dict[str, str | int | bool]] = {}
 
 # Этот хэндлер срабатывает на команду /start
 @router.message(CommandStart())
@@ -174,8 +178,15 @@ async def process_photo_sent(message: Message, state: FSMContext):
 
     # Если это была последняя отправленная фотография, завершаем машину состояний
     data = await state.get_data()
+    product = Product(data['name'], data['description'], data['sku'], data['colors'], data['sizes'], data['price'])
+    product.generate_variants()
+    product.__dict__['photo_ids'] = data['photo_ids']
+    product_json = json.dumps(product.__dict__)
+    r.set(product.sku, product_json)
     print(data)
+    print(product.__dict__)
 
+    
     await message.answer(text='Спасибо!\n\nТовар создан!')
     await state.clear()
 
