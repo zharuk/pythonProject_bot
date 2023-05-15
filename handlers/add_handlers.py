@@ -176,17 +176,21 @@ async def process_photo_sent(message: Message, state: FSMContext):
     # Сохраняем список идентификаторов фото в состояние
     await state.update_data(photo_ids=photo_ids)
 
-    # Если это была последняя отправленная фотография, завершаем машину состояний
+    # Формируем товар и добавляем в БД redis
     data = await state.get_data()
     product = Product(data['name'], data['description'], data['sku'], data['colors'], data['sizes'], data['price'])
     product.generate_variants()
     product.__dict__['photo_ids'] = data['photo_ids']
     product_json = json.dumps(product.__dict__)
     r.set(product.sku, product_json)
-    print(data)
-    print(product.__dict__)
 
-    
+    # # Получение JSON-строки из Redis
+    # product_json = r.get(product.sku)
+    #
+    # # Преобразование JSON-строки в словарь
+    # product_dict = json.loads(product_json)
+
+    #Завершающее сообщение и очистка FSM
     await message.answer(text='Спасибо!\n\nТовар создан!')
     await state.clear()
 

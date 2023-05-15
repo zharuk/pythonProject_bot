@@ -6,7 +6,6 @@ class Product:
         self.colors = colors.split()
         self.sizes = sizes.split()
         self.price = price
-        self.photo_ids = None
         self.variants = self.generate_variants()
 
     def generate_variants(self) -> list[dict[str, [str, float, int]]]:
