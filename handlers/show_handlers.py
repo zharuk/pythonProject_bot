@@ -1,6 +1,11 @@
 import redis
 import json
 
+from aiogram.dispatcher import router
+from aiogram.filters import Command, StateFilter
+from aiogram.fsm.state import default_state
+from aiogram.types import Message
+
 # Подключение к базе данных Redis
 r = redis.Redis(host='localhost', port=6379, db=0)
 
@@ -19,3 +24,9 @@ for key in keys:
     if data is not None:
         decoded_data = json.loads(data.decode())
         print(key.decode(), decoded_data)
+
+
+@router.message(Command(commands='show'))
+async def process_show_command(message: Message):
+    await message.answer(text='Список товаров:')
+    # Устанавливаем состояние ожидания ввода имени
