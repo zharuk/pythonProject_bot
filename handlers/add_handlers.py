@@ -12,25 +12,17 @@ import redis
 # Инициализируем роутер уровня модуля
 router: Router = Router()
 r = redis.Redis(host='localhost', port=6379, db=0)
-#user_dict: dict[int, dict[str, str | int | bool]] = {}
-
-# Этот хэндлер срабатывает на команду /start
-@router.message(CommandStart())
-async def process_start_command(message: Message):
-    await message.answer(text=LEXICON_RU['/start'])
 
 
-# Этот хэндлер срабатывает на команду /help
-@router.message(Command(commands='help'))
-async def process_help_command(message: Message):
-    await message.answer(text=LEXICON_RU['/help'])
-
+# @router.message(CommandStart())
+# async def process_start_command(message: Message):
+#     await message.answer(text=LEXICON_RU['/start'])
 
 # Этот хэндлер будет срабатывать на команду /add
 # и переводить бота в состояние ожидания ввода имени
 @router.message(Command(commands='add'), StateFilter(default_state))
 async def process_add_command(message: Message, state: FSMContext):
-    await message.answer(text='Пожалуйста, название товара')
+    await message.answer(text=LEXICON_RU['/add'])
     # Устанавливаем состояние ожидания ввода имени
     await state.set_state(FSMAddProduct.fill_name)
 
