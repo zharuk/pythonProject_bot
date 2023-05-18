@@ -14,10 +14,3 @@ def add_product_to_redis(product):
 
 
 
-
-# p = Product('Платье', 'Платье изо льна', '001', 'Красный, Белый', '42, 44', 150)
-# add_product_to_redis(p)
-#
-# product = r.get('001')
-# product = json.loads(product)
-# print(product)

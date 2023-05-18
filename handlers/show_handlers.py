@@ -1,32 +1,40 @@
+from aiogram import Router
+from aiogram.filters import Command
+from aiogram.types import Message, CallbackQuery
+from keyboards.for_product_show import create_inline_kb
+from config_data.config import load_config
 import redis
 import json
 
-from aiogram.dispatcher import router
-from aiogram.filters import Command, StateFilter
-from aiogram.fsm.state import default_state
-from aiogram.types import Message
+# Загрузка конфигурации
+config = load_config()
 
-# Подключение к базе данных Redis
-r = redis.Redis(host='localhost', port=6379, db=0)
+# Подключение к серверу Redis
+r = redis.Redis(host=config.redis.host, port=config.redis.port)
 
-# Получение всех ключей
-keys = r.keys('*')
-
-# Вывод всех ключей
-print("Все ключи:")
-for key in keys:
-    print(key.decode())  # Преобразование байтовой строки в строку
-
-# Получение и преобразование данных для каждого ключа
-print("\nДанные:")
-for key in keys:
-    data = r.get(key)
-    if data is not None:
-        decoded_data = json.loads(data.decode())
-        print(key.decode(), decoded_data)
+router: Router = Router()
 
 
 @router.message(Command(commands='show'))
 async def process_show_command(message: Message):
-    await message.answer(text='Список товаров:')
-    # Устанавливаем состояние ожидания ввода имени
+    keyboard = create_inline_kb()
+    await message.answer(text='Список товаров:',
+                         reply_markup=keyboard)
+
+
+@router.callback_query()
+async def process_callback_query(callback_query: CallbackQuery):
+    # Получаем значение артикула товара из callback_data
+    article = callback_query.data
+    # Получаем значение из Redis по артикулу
+    value = r.get(article)
+    json_value = json.loads(value)
+    print(json_value)
+    response_text = f"➡ Название товара: {json_value['name']}\n" \
+                    f"➡ Описание товара: {json_value['description']}\n" \
+                    f"➡ Артикул товара: {json_value['sku']}\n" \
+                    f"➡ Цвета товара: {', '.join(json_value['colors'])}\n" \
+                    f"➡ Размеры товара: {', '.join(json_value['sizes'])}\n" \
+                    f"➡ Цена товара: {json_value['price']}\n" \
+        # Отправляем значение пользователю
+    await callback_query.message.answer(response_text)

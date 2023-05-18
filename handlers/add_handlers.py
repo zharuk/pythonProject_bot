@@ -1,13 +1,14 @@
-from aiogram import Router, F
-from aiogram.filters import Command, CommandStart, StateFilter
+from aiogram import Router
+from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from FSM.fsm import FSMAddProduct
-from aiogram.types import Message, PhotoSize
+from aiogram.types import Message
 from lexicon.lexicon import LEXICON_RU
 from services.product import Product
 import json
 import redis
+
 
 # Инициализируем роутер уровня модуля
 router: Router = Router()

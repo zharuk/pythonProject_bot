@@ -13,7 +13,6 @@ class Redis:
     port: int
 
 
-
 @dataclass
 class Config:
     tg_bot: TgBot
