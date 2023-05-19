@@ -2,6 +2,7 @@ import asyncio
 from aiogram import Bot, Dispatcher
 from config_data.config import Config, load_config
 from handlers import add_handlers, show_handlers
+from keyboards.set_menu import set_main_menu
 
 
 # Функция конфигурирования и запуска бота
@@ -12,6 +13,9 @@ async def main():
     # Инициализируем бот и диспетчер и сервер
     bot: Bot = Bot(token=config.tg_bot.token)
     dp: Dispatcher = Dispatcher()
+
+    # Настраиваем меню
+    await set_main_menu(bot)
 
     # Регистриуем роутеры в диспетчере
     dp.include_router(add_handlers.router)

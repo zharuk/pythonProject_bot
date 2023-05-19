@@ -13,3 +13,4 @@ class FSMAddProduct(StatesGroup):
     fill_sizes = State()  # Состояние ожидания ввода размеров товара
     fill_price = State()  # Состояние ожидания ввода цены товара
     fill_photo = State() # Состояние ввода загрузки фото
+

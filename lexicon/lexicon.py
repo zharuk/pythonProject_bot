@@ -4,3 +4,7 @@ LEXICON_RU: dict[str, str] = {
     'no_echo': 'Данный тип апдейтов не поддерживается '
                'методом send_copy',
 }
+LEXICON_COMMANDS_RU: dict[str, str] = {
+    '/show': 'Список товаров',
+    '/add': 'Добавить товар',
+}

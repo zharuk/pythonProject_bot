@@ -26,3 +26,18 @@ class Product:
                 variants.append(variant)
                 i += 1
         return variants
+
+
+def format_variants_message(variants):
+    message = "Список вариантов:\n\n"
+    for variant in variants:
+        color = variant['color']
+        size = variant['size']
+        sku = variant['sku']
+        price = variant['price']
+        stock = variant['stock']
+        message += f"➡️ Комплектация: {color} {size}\n"
+        message += f"Артикул: {sku}\n"
+        message += f"Цена: {price} \n"
+        message += f"✅ На складе: <b>{stock}</b>\n\n" if stock > 0 else '<b>❌ Нет в наличии</b>\n\n'
+    return message
