@@ -1,3 +1,6 @@
+from aiogram.types import InputMediaPhoto
+
+
 class Product:
     def __init__(self, name: str, description: str, sku: str, colors: str, sizes: str, price: float):
         self.name = name
@@ -28,7 +31,7 @@ class Product:
         return variants
 
 
-def format_variants_message(variants):
+def format_variants_message(variants: list) -> str:
     message = "Список вариантов:\n\n"
     for variant in variants:
         color = variant['color']
@@ -41,3 +44,9 @@ def format_variants_message(variants):
         message += f"Цена: {price} \n"
         message += f"✅ На складе: <b>{stock}</b>\n\n" if stock > 0 else '<b>❌ Нет в наличии</b>\n\n'
     return message
+
+
+def generate_photos(variants: list) -> list:
+    photos = [photo_id['id'] for photo_id in variants]
+    media = [InputMediaPhoto(media=photo_id) for photo_id in photos]
+    return media

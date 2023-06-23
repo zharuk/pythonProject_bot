@@ -15,10 +15,6 @@ router: Router = Router()
 r = redis.Redis(host='localhost', port=6379, db=0)
 
 
-# @router.message(CommandStart())
-# async def process_start_command(message: Message):
-#     await message.answer(text=LEXICON_RU['/start'])
-
 # Этот хэндлер будет срабатывать на команду /add
 # и переводить бота в состояние ожидания ввода имени
 @router.message(Command(commands='add'), StateFilter(default_state))

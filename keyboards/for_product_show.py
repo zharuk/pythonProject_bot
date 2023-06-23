@@ -20,8 +20,8 @@ def create_products_kb():
     # Создаем кнопки на основе ключей из Redis
     for key in keys:
         # Преобразуем ключ из байтов в строку
-        key_str = key.decode('utf-8')
-        buttons.append(InlineKeyboardButton(text=key_str, callback_data=key_str))
+        key_sku = key.decode('utf-8')
+        buttons.append(InlineKeyboardButton(text=key_sku, callback_data=key_sku))
 
     # Создаем список списков кнопок
     inline_keyboard = [buttons]
