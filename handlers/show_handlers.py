@@ -2,7 +2,7 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 from keyboards.for_product_show import create_products_kb
-from services.product import format_variants_message, generate_photos
+from services.product import format_variants_message, generate_photos, format_main_info
 from config_data.config import load_config
 import redis
 import json
@@ -31,19 +31,15 @@ async def process_callback_query(callback_query: CallbackQuery):
     value = r.get(article)
     json_value = json.loads(value)
 
-    # формируем основную информацию о товаре
-    response_text = f"➡ Название товара: {json_value['name']}\n" \
-                    f"➡ Описание товара: {json_value['description']}\n" \
-                    f"➡ Артикул товара: {json_value['sku']}\n" \
-                    f"➡ Цвета товара: {', '.join(json_value['colors'])}\n" \
-                    f"➡ Размеры товара: {', '.join(json_value['sizes'])}\n" \
-                    f"➡ Цена товара: {json_value['price']}\n" \
-        # Отправляем значение пользователю
-    await callback_query.message.answer(response_text, parse_mode='HTML')
+    # формируем основную информацию о товаре с помощью функции
+    main_info = format_main_info(json_value)
+    # Отправляем значение пользователю
+    await callback_query.message.answer(main_info, parse_mode='HTML')
 
     # вывод комплектаций товара
     value_variants = json_value['variants']
     formatted_variants = format_variants_message(value_variants)
+    # Отправляем значение пользователю
     await callback_query.message.answer(formatted_variants, parse_mode='HTML')
 
     # Создаем список фотографий
