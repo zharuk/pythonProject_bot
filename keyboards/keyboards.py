@@ -1,16 +1,13 @@
+import json
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from config_data.config import load_config
-import redis
-
-# Загрузка конфигурации
-config = load_config()
+from services.redis_server import create_redis_client
 
 # Подключение к серверу Redis
-r = redis.Redis(host=config.redis.host, port=config.redis.port)
+r = create_redis_client()
 
 
 # Функция для формирования инлайн-клавиатуры на лету на основе ключей из Redis
-def create_products_kb():
+def create_sku_kb():
     # Получаем ключи из Redis
     keys = r.keys()
 
@@ -29,3 +26,15 @@ def create_products_kb():
     # Возвращаем объект инлайн-клавиатуры
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
+
+# Функция создающая клавиатуру с 2 кнопками "Модификации товара" и "Показать фото"
+def create_options_kb(article):
+    # Создаем кнопки
+    button_variants = InlineKeyboardButton(text='Модификации товара', callback_data=str(article) + '_variants')
+    button_photo = InlineKeyboardButton(text='Показать фото', callback_data=str(article) + '_photo')
+
+    # Создаем список списков кнопок
+    inline_keyboard = [[button_variants, button_photo]]
+
+    # Возвращаем объект инлайн-клавиатуры
+    return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)

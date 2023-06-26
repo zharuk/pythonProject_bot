@@ -1,15 +1,18 @@
-from aiogram import Bot, Dispatcher, executor, types
+import redis
 
-API_TOKEN = 'YOUR_BOT_TOKEN_HERE'
+# Подключение к Redis
+r = redis.Redis(host='localhost', port=6379, db=0)
 
-bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+# Вывод всех ключей
+keys = r.keys('*')
+print("All Keys:")
+for key in keys:
+    print(key.decode())
 
-
-@dp.message_handler(commands=['start'])
-async def send_welcome(message: types.Message):
-    await message.answer("Привет!")
-
-
-if __name__ == '__main__':
-    executor.start_polling(dp)
+# Удаление одного ключа
+key_to_delete = 'платье супер хайк147'
+result = r.delete(key_to_delete)
+if result == 1:
+    print(f"Key '{key_to_delete}' deleted successfully.")
+else:
+    print(f"Key '{key_to_delete}' does not exist or could not be deleted.")

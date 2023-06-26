@@ -1,4 +1,4 @@
-from aiogram import Router
+from aiogram import Dispatcher, Router
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
@@ -7,12 +7,10 @@ from aiogram.types import Message
 from lexicon.lexicon import LEXICON_RU
 from services.product import Product
 import json
-import redis
+from services.redis_server import create_redis_client
 
-
-# Инициализируем роутер уровня модуля
 router: Router = Router()
-r = redis.Redis(host='localhost', port=6379, db=0)
+r = create_redis_client()
 
 
 # Этот хэндлер будет срабатывать на команду /add
@@ -179,8 +177,6 @@ async def process_photo_sent(message: Message, state: FSMContext):
     # # Преобразование JSON-строки в словарь
     # product_dict = json.loads(product_json)
 
-    #Завершающее сообщение и очистка FSM
+    # Завершающее сообщение и очистка FSM
     await message.answer(text='Спасибо!\n\nТовар создан!')
     await state.clear()
-
-
