@@ -32,12 +32,12 @@ class Product:
 
 
 def format_main_info(json_value: dict):
-    response_text = f"➡ Название товара: {json_value['name']}\n" \
-                    f"➡ Описание товара: {json_value['description']}\n" \
-                    f"➡ Артикул товара: {json_value['sku']}\n" \
-                    f"➡ Цвета товара: {', '.join(json_value['colors'])}\n" \
-                    f"➡ Размеры товара: {', '.join(json_value['sizes'])}\n" \
-                    f"➡ Цена товара: {json_value['price']}\n"
+    response_text = f"➡ Название: {json_value['name']}\n" \
+                    f"➡ Описание: {json_value['description']}\n" \
+                    f"➡ Артикул: {json_value['sku']}\n" \
+                    f"➡ Цвета: {', '.join(json_value['colors'])}\n" \
+                    f"➡ Размеры: {', '.join(json_value['sizes'])}\n" \
+                    f"➡ Цена: {json_value['price']}\n"
     return response_text
 
 
