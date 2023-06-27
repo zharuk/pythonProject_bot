@@ -30,7 +30,7 @@ async def process_callback_query(callback_query: CallbackQuery):
     # формируем клавиатуру с 2 кнопками "Модификации товара" и "Показать фото" с помощью функции create_kb
     kb = create_options_kb(article)
     # Отправляем значение пользователю
-    await callback_query.message.answer(main_info, parse_mode='HTML', reply_markup=kb)
+    await callback_query.message.answer(main_info, reply_markup=kb)
     await callback_query.answer()
 
 
@@ -46,7 +46,7 @@ async def process_callback_query(callback_query: CallbackQuery):
     value_variants = json_value['variants']
     formatted_variants = format_variants_message(value_variants)
     # Отправляем значение пользователю
-    await callback_query.message.answer(formatted_variants, parse_mode='HTML')
+    await callback_query.message.answer(formatted_variants)
     await callback_query.answer()
 
 
@@ -73,13 +73,11 @@ async def process_callback_query(callback_query: CallbackQuery):
 async def process_callback_query(callback_query: CallbackQuery):
     # Получаем значение артикула товара из callback_data
     article = callback_query.data.split('_')[0]
-    print(article)
     # Получаем значение из Redis по артикулу
     value = r.get(article)
-    print(value)
     # Преобразуем значение в словарь json
     json_value = json.loads(value)
-    print(json_value)
-    kb = create_variants_kb(article)
+    json_value_variants = json_value['variants']
+    kb = create_variants_kb(article, json_value_variants)
     await callback_query.message.answer(text='Выберите товар:', reply_markup=kb)
 

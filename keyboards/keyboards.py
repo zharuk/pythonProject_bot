@@ -27,24 +27,27 @@ def create_sku_kb():
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
 
-# Функция для формирования клавиатуры с кнопками названия которых будут все модификации товара т.е 001-1, 001-2 и т.д
-def create_variants_kb(article):
-    # Получаем значение из Redis по артикулу
-    value = r.get(article)
-    # Преобразуем значение в словарь json
-    json_value = json.loads(value)
-    # Получаем список модификаций товара
-    value_variants = json_value['variants']
-
+# Функция для формирования клавиатуры с кнопками названия которых будут все модификации товара.
+# Название кнопок формируется из списка словарей 'variants' по ключам 'sku', 'color' и 'size.
+# Например, название кнопки: sku = '121-1', 'color': 'черный', 'size': 'S' -> '121-1 черный S'.
+# В callback_data кнопки записывается артикул модификация товара sku в словаре 'variants'.
+# На вход функция принимает артикул товара и список словарей 'variants' и формирует клавиатуру.
+def create_variants_kb(article, variants):
     # Инициализируем список для кнопок
     buttons = []
 
-    # Создаем кнопки на основе списка модификаций товара
-    for variant in value_variants:
-        buttons.append(InlineKeyboardButton(text=variant, callback_data=variant))
+    # Создаем кнопки на основе ключей из Redis
+    for variant in variants:
+        # Формируем название кнопки
+        button_name = f"Арт:{variant['sku']} ({variant['color']}-{variant['size']})"
+
+        # Формируем callback_data кнопки
+        button_callback_data = f"{variant['sku']}"
+        # Создаем кнопку
+        buttons.append([InlineKeyboardButton(text=button_name, callback_data=button_callback_data)])
 
     # Создаем список списков кнопок
-    inline_keyboard = [buttons]
+    inline_keyboard = buttons
 
     # Возвращаем объект инлайн-клавиатуры
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
