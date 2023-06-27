@@ -27,7 +27,7 @@ def create_sku_kb():
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
 
-# Функция для формитрования клавиатуры с кнопками названия которых будут все модификации товара т.е 001-1, 001-2 и т.д
+# Функция для формирования клавиатуры с кнопками названия которых будут все модификации товара т.е 001-1, 001-2 и т.д
 def create_variants_kb(article):
     # Получаем значение из Redis по артикулу
     value = r.get(article)

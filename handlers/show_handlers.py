@@ -1,7 +1,7 @@
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
-from keyboards.keyboards import create_sku_kb, create_options_kb
+from keyboards.keyboards import create_sku_kb, create_options_kb, create_variants_kb
 from services.product import format_variants_message, generate_photos, format_main_info
 import json
 from services.redis_server import create_redis_client
@@ -71,8 +71,15 @@ async def process_callback_query(callback_query: CallbackQuery):
 # Обработчик для кнопки "Продать товар" в которой callback_data = '_sell', выводит список товаров
 @router.callback_query(lambda callback_query: '_sell' in callback_query.data)
 async def process_callback_query(callback_query: CallbackQuery):
-    kb = create_sku_kb()
+    # Получаем значение артикула товара из callback_data
+    article = callback_query.data.split('_')[0]
+    print(article)
+    # Получаем значение из Redis по артикулу
+    value = r.get(article)
+    print(value)
+    # Преобразуем значение в словарь json
+    json_value = json.loads(value)
+    print(json_value)
+    kb = create_variants_kb(article)
     await callback_query.message.answer(text='Выберите товар:', reply_markup=kb)
 
-
-# Обработчик который обрабатывает Артикул и выводит информацио о комтациях товара в виде кнопок
