@@ -12,9 +12,9 @@ r = create_redis_client()
 
 @router.message(Command(commands='show'))
 async def process_show_command(message: Message):
-    keyboard = create_sku_kb()
+    kb = create_sku_kb()
     await message.answer(text='Список товаров:',
-                         reply_markup=keyboard)
+                         reply_markup=kb)
 
 
 @router.callback_query(lambda callback_query: len(callback_query.data) < 4)
@@ -66,3 +66,13 @@ async def process_callback_query(callback_query: CallbackQuery):
     else:
         await callback_query.message.answer('Фото нет')
     await callback_query.answer()
+
+
+# Обработчик для кнопки "Продать товар" в которой callback_data = '_sell', выводит список товаров
+@router.callback_query(lambda callback_query: '_sell' in callback_query.data)
+async def process_callback_query(callback_query: CallbackQuery):
+    kb = create_sku_kb()
+    await callback_query.message.answer(text='Выберите товар:', reply_markup=kb)
+
+
+# Обработчик который обрабатывает Артикул и выводит информацио о комтациях товара в виде кнопок
