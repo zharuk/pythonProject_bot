@@ -39,7 +39,7 @@ def create_variants_kb(article, variants):
     # Создаем кнопки на основе ключей из Redis
     for variant in variants:
         # Формируем название кнопки
-        button_name = f"Арт:{variant['sku']} ({variant['color']}-{variant['size']})"
+        button_name = f"Арт:{variant['sku']} ({variant['color']}-{variant['size']}) В наличии - {str(variant['stock'])+'шт' if variant['stock'] > 0 else 'Нет в наличии'}"
 
         # Формируем callback_data кнопки
         button_callback_data = f"{variant['sku']}"
