@@ -77,7 +77,10 @@ async def process_callback_query(callback_query: CallbackQuery):
     value = r.get(article)
     # Преобразуем значение в словарь json
     json_value = json.loads(value)
+    # Получаем значение variants из json_value
     json_value_variants = json_value['variants']
+    # Создаем клавиатуру с вариантами товара
     kb = create_variants_kb(article, json_value_variants)
+    # Отправляем клавиатуру пользователю
     await callback_query.message.answer(text='Выберите товар:', reply_markup=kb)
 

@@ -1,6 +1,8 @@
 from aiogram.types import InputMediaPhoto
 
-
+# Класс для создания экземпляров товаров
+# При создании экземпляра класса Product, мы передаем в него все необходимые параметры
+# и он генерирует список вариантов товара
 class Product:
     def __init__(self, name: str, description: str, sku: str, colors: str, sizes: str, price: float):
         self.name = name
@@ -31,6 +33,8 @@ class Product:
         return variants
 
 
+# Функция для формирования основной информации о товаре
+# На вход функция принимает словарь с информацией о товаре и формирует текстовое сообщение
 def format_main_info(json_value: dict):
     response_text = f"➡ Название: {json_value['name']}\n" \
                     f"➡ Описание: {json_value['description']}\n" \
@@ -41,6 +45,8 @@ def format_main_info(json_value: dict):
     return response_text
 
 
+# Функция для формирования сообщения со списком вариантов товара
+# На вход функция принимает список вариантов товара и формирует текстовое сообщение
 def format_variants_message(variants: list) -> str:
     message = "Список вариантов:\n\n"
     for variant in variants:
@@ -56,6 +62,8 @@ def format_variants_message(variants: list) -> str:
     return message
 
 
+# Функция для формирования списка фотографий товара
+# На вход функция принимает список вариантов товара и формирует список фотографий
 def generate_photos(variants: list) -> list:
     photos = [photo_id['id'] for photo_id in variants]
     media = [InputMediaPhoto(media=photo_id) for photo_id in photos]
