@@ -43,8 +43,8 @@ def sell_product(sku: str, quantity: int):
     today = datetime.date.today().strftime('%d.%m.%Y')
     report_data = {
         'date': today,
-        'sold_products': {sku: [quantity, int(required['price']), quantity * int(required['price'])]},
-        #'returned_products': {}
+        'sold_products': [[sku, quantity, int(required['price']), quantity * int(required['price'])]],
+        'returned_products': {}
     }
 
     reports_data = redis_db.get('reports')
@@ -53,13 +53,17 @@ def sell_product(sku: str, quantity: int):
     else:
         reports = {}
 
-    reports.update(report_data)
+    if 'sold_products' in reports:
+        reports['sold_products'].append(report_data['sold_products'])
+    else:
+        reports['sold_products'] = report_data['sold_products']
 
     redis_db.set('reports', json.dumps(reports))
 
     return 'Товар успешно продан!'
 
 
+# Функция для возврата товара
 # Функция для возврата товара
 def return_product(sku: str, quantity: int):
     # Обрезаем артикул до основного значения
@@ -92,8 +96,8 @@ def return_product(sku: str, quantity: int):
     today = datetime.date.today().strftime('%d.%m.%Y')
     report_data = {
         'date': today,
-        #'sold_products': {},
-        'returned_products': {sku: [quantity, int(required['price']), quantity * int(required['price'])]}
+        'sold_products': {},
+        'returned_products': [[sku, quantity, int(required['price']), quantity * int(required['price'])]]
     }
 
     reports_data = redis_db.get('reports')
@@ -102,12 +106,17 @@ def return_product(sku: str, quantity: int):
     else:
         reports = {}
 
-    reports.update(report_data)
+    if 'returned_products' in reports:
+        reports['returned_products'].append(report_data['returned_products'][0])
+    else:
+        reports['returned_products'] = report_data['returned_products']
 
     redis_db.set('reports', json.dumps(reports))
 
     return 'Товар успешно возвращен на склад!'
 
 
-#print(return_product('001-1', 5))
+print(return_product('001-1', 5))
 print(sell_product('001-1', 2))
+print(return_product('001-2', 5))
+print(sell_product('001-2', 2))
