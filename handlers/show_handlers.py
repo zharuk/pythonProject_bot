@@ -10,13 +10,16 @@ router: Router = Router()
 r = create_redis_client()
 
 
+# Обработчик команды /show для вывода списка товаров с помощью инлайн-клавиатуры с артикулами товаров
 @router.message(Command(commands='show'))
 async def process_show_command(message: Message):
+    # Создаем инлайн-клавиатуру с артикулами товаров
     kb = create_sku_kb()
-    await message.answer(text='Список товаров:',
-                         reply_markup=kb)
+    # Отправляем сообщение пользователю
+    await message.answer(text='Список товаров:', reply_markup=kb)
 
 
+# Обработчик для кнопок с артикулами товаров в которых callback_data = артикулу товара
 @router.callback_query(lambda callback_query: len(callback_query.data) < 4)
 async def process_callback_query(callback_query: CallbackQuery):
     # Получаем значение артикула товара из callback_data
@@ -84,3 +87,13 @@ async def process_callback_query(callback_query: CallbackQuery):
     # Отправляем клавиатуру пользователю
     await callback_query.message.answer(text='Выберите товар:', reply_markup=kb)
 
+
+# Обработчик, который срабатывает при нажатии на кнопку с вариантом товара и просит ввести количество продаваемого
+# товара сообщением "Введите количество:"
+@router.callback_query(lambda callback_query: '-' in callback_query.data)
+async def process_callback_query(callback_query: CallbackQuery):
+    # Получаем значение артикула товара из callback_data
+    article = callback_query.data.split('_')[0]
+    print(callback_query)
+    # Отвечаем пользователю сообщением "Введите количество:"
+    await callback_query.message.answer(text='Введите количество:')
