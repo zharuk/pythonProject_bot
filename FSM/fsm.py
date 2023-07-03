@@ -18,4 +18,4 @@ class FSMAddProduct(StatesGroup):
 # Cоздаем класс, наследуемый от StatesGroup, для группы состояний нашей FSM для события показа товара /show_handlers
 # Создаем класс состояний FSM
 class SellItemStates(StatesGroup):
-    waiting_for_quantity = State()
+    quantity = State()

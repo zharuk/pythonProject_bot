@@ -72,7 +72,7 @@ def sell_product(sku: str, quantity: int):
         # Сохраняем отчет в базе данных
         redis_db.set('reports', json.dumps(new_report))
 
-    return 'Товар успешно продан и добавлен в отчет reports!'
+    return True
 
 
 # Функция для возврата товара и формирования отчета
@@ -138,7 +138,8 @@ def return_product(sku: str, quantity: int):
     return 'Товар успешно возвращен на остатки и добавлен в отчет return_products!'
 
 
-#print(return_product('001-2', 5))
-print(sell_product('001-2', 3))
+# print(return_product('001-1', 5))
+# print(return_product('001-2', 5))
+#print(sell_product('001-2', 3))
 # print(sell_product('001-1', 2))
 # print(sell_product('001-1', 2))
