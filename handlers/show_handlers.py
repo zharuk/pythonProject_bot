@@ -88,7 +88,7 @@ async def process_callback_query(callback_query: CallbackQuery):
     # Создаем клавиатуру с вариантами товара
     kb = create_variants_kb(article, json_value_variants)
     # Отправляем клавиатуру пользователю
-    await callback_query.message.answer(text='Выберите товар:', reply_markup=kb)
+    await callback_query.message.answer(text='Выберите товар или нажмите отмена /cancel', reply_markup=kb)
     await callback_query.answer()
 
 

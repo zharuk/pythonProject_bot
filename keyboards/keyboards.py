@@ -18,7 +18,13 @@ def create_sku_kb():
     for key in keys:
         # Преобразуем ключ из байтов в строку
         key_sku = key.decode('utf-8')
+        # Пропускаем ключ с названием 'reports'
+        if key_sku == 'reports':
+            continue  # Пропустить добавление кнопки
         buttons.append(InlineKeyboardButton(text=key_sku, callback_data=key_sku))
+
+    # Сортируем кнопки по возрастанию
+    buttons.sort(key=lambda x: x.text)
 
     # Создаем список списков кнопок
     inline_keyboard = [buttons]
@@ -39,7 +45,7 @@ def create_variants_kb(article, variants):
     # Создаем кнопки на основе ключей из Redis
     for variant in variants:
         # Формируем название кнопки
-        button_name = f"Арт:{variant['sku']} ({variant['color']}-{variant['size']}) На складе - {str(variant['stock'])+'шт' if variant['stock'] > 0 else 'Нет в наличии'}"
+        button_name = f"Арт:{variant['sku']} ({variant['color']}-{variant['size']}) На складе - {str(variant['stock']) + 'шт.' if variant['stock'] > 0 else 'Нет в наличии'}"
 
         # Формируем callback_data кнопки
         button_callback_data = f"{variant['sku']}"
