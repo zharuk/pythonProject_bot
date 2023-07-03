@@ -1,9 +1,7 @@
 from aiogram import Router
 from aiogram.filters import Command
-from aiogram.fsm import state
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
-
 from FSM.fsm import SellItemStates
 from keyboards.keyboards import create_sku_kb, create_options_kb, create_variants_kb
 from services.product import format_variants_message, generate_photos, format_main_info
@@ -146,8 +144,8 @@ async def process_quantity(message: Message, state: FSMContext):
 @router.message(lambda x: x.text and not x.text.isdigit() or int(x.text) < 1 or int(x.text) > 100,
                 SellItemStates.quantity)
 async def process_quantity(message: Message, state: FSMContext):
+    print(message.text)
     # Пишем сообщение пользователю, что было введено не число от 1 до 100
-    await message.answer(text='Было введено не число от 1 до 100')
+    await message.answer(text='Введите число от 1 до 100 или нажмите /cancel для отмены')
 
-# @router.message(lambda x: x.text and x.text.isdigit() and 1 <= int(x.text) <= 100, SellItemStates.article)
-# async def process_quantity(message: Message, state: FSMContext):
+

@@ -7,4 +7,5 @@ LEXICON_RU: dict[str, str] = {
 LEXICON_COMMANDS_RU: dict[str, str] = {
     '/show': 'Список товаров',
     '/add': 'Добавить товар',
+    'cancel': 'Отмена',
 }

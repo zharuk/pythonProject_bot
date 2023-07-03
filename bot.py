@@ -1,7 +1,7 @@
 import asyncio
 from aiogram import Bot, Dispatcher
 from config_data.config import Config, load_config
-from handlers import add_handlers, show_handlers
+from handlers import add_handlers, show_handlers, cancel_hadlers
 from keyboards.set_menu import set_main_menu
 import logging
 
@@ -30,6 +30,7 @@ async def main():
     await set_main_menu(bot)
 
     # Регистриуем роутеры в диспетчере
+    dp.include_router(cancel_hadlers.router)
     dp.include_router(add_handlers.router)
     dp.include_router(show_handlers.router)
 
