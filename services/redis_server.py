@@ -6,3 +6,5 @@ def create_redis_client():
     config: Config = load_config()
     r = redis.Redis(host=config.redis.host, port=config.redis.port)
     return r
+
+

@@ -3,7 +3,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from FSM.fsm import SellItemStates
-from keyboards.keyboards import create_sku_kb, create_options_kb, create_variants_kb
+from keyboards.keyboards import create_sku_kb, create_options_kb, create_variants_kb, create_cancel_kb
 from services.product import format_variants_message, generate_photos, format_main_info
 import json
 from services.redis_server import create_redis_client
@@ -19,7 +19,7 @@ async def process_show_command(message: Message):
     # Создаем инлайн-клавиатуру с артикулами товаров
     kb = create_sku_kb()
     # Отправляем сообщение пользователю
-    await message.answer(text='Список товаров:', reply_markup=kb)
+    await message.answer(text='Выберите товар или нажмите <b>отмена</b>', reply_markup=kb)
 
 
 # Обработчик для кнопок с артикулами товаров в которых callback_data = артикулу товара
@@ -51,8 +51,11 @@ async def process_callback_query(callback_query: CallbackQuery):
     # вывод комплектаций товара
     value_variants = json_value['variants']
     formatted_variants = format_variants_message(value_variants)
+    # Создаем клавиатуру с всеми товарами create_sku_kb()
+    kb = create_options_kb(article)
     # Отправляем значение пользователю
     await callback_query.message.answer(formatted_variants)
+    await callback_query.message.answer(text='Выберите действие 👇', reply_markup=kb)
     await callback_query.answer()
 
 
@@ -64,11 +67,15 @@ async def process_callback_query(callback_query: CallbackQuery):
     # Получаем значение из Redis по артикулу
     value = r.get(article)
     json_value = json.loads(value)
+    # Создаем клавиатуру с всеми товарами create_sku_kb()
+    kb = create_options_kb(article)
     # Создаем список фотографий
     if 'photo_ids' in json_value:
         photo_ids = json_value['photo_ids']
         # Отправляем все фотографии одним сообщением
         await callback_query.message.answer_media_group(generate_photos(photo_ids))
+        # Отправляем клавиатуру пользователю
+        await callback_query.message.answer(text='Выберите действие 👇', reply_markup=kb)
     else:
         await callback_query.message.answer('Фото нет')
     await callback_query.answer()
@@ -88,7 +95,7 @@ async def process_callback_query(callback_query: CallbackQuery):
     # Создаем клавиатуру с вариантами товара
     kb = create_variants_kb(article, json_value_variants)
     # Отправляем клавиатуру пользователю
-    await callback_query.message.answer(text='Выберите товар или нажмите отмена /cancel', reply_markup=kb)
+    await callback_query.message.answer(text='Выберите товар или нажмите отмена 👇', reply_markup=kb)
     await callback_query.answer()
 
 
@@ -104,8 +111,10 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     data = await state.get_data()
     # Переводим в состояние SellItemStates.quantity
     await state.set_state(SellItemStates.quantity)
+    # Создаем клаватуру с кнопкой "Отмена"
+    kb = create_cancel_kb()
     # Отвечаем пользователю сообщением "Введите количество:"
-    await callback_query.message.answer(text='Введите количество:')
+    await callback_query.message.answer(text='Введите количество или нажмите <b>отмена</b>', reply_markup=kb)
     await callback_query.answer()
 
 
@@ -123,6 +132,8 @@ async def process_quantity(message: Message, state: FSMContext):
     json_value = json.loads(value)
     # вывод комплектаций товара
     value_variants = json_value['variants']
+    # Создаем клавиатуру с всеми вариантами товара create_variants_kb()
+    kb = create_variants_kb(article_variant.split('-')[0], value_variants)
     # Получаем название товара
     name = ''
     for i in value_variants:
@@ -133,19 +144,23 @@ async def process_quantity(message: Message, state: FSMContext):
     if sell_product(article_variant, quantity) is True:
         # Пишем сообщение пользователю, что товар продан в количестве quantity штук
         await message.answer(text=f'Товар {name} продан в количестве {quantity} шт.')
+        # Выводим список товаров
+        await message.answer(text='Выберите товар или нажмите отмена 👇', reply_markup=kb)
         # Переводим в состояние default
         await state.clear()
     else:
         # Пишем сообщение пользователю, что товара не хватает на складе
-        await message.answer(text=f'Товара {name} <b>не хватает на складе</b>')
+        await message.answer(text=f'Товара {name} <b>не хватает на складе</b>. Выберете другой товар или нажмите '
+                                  f'"Отмена"', reply_markup=kb)
 
 
 # Обработчик, если было введено не число от 1 до 100
 @router.message(lambda x: x.text and not x.text.isdigit() or int(x.text) < 1 or int(x.text) > 100,
                 SellItemStates.quantity)
 async def process_quantity(message: Message, state: FSMContext):
-    print(message.text)
+    # Делаем клавиатуру с одной кнопкой "Отмена"
+    kb = create_cancel_kb()
     # Пишем сообщение пользователю, что было введено не число от 1 до 100
-    await message.answer(text='Введите число от 1 до 100 или нажмите /cancel для отмены')
+    await message.answer(text='Введите число от 1 до 100 или нажмите <b>отмена</b>', reply_markup=kb)
 
 

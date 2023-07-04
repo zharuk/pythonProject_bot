@@ -28,6 +28,10 @@ def create_sku_kb():
 
     # Создаем список списков кнопок
     inline_keyboard = [buttons]
+    # Создаем кнопку "Отмена"
+    cancel_button = InlineKeyboardButton(text='Отмена', callback_data='cancel')
+    # Добавляем кнопку "Отмена" в список кнопок
+    inline_keyboard.append([cancel_button])
 
     # Возвращаем объект инлайн-клавиатуры
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
@@ -52,6 +56,9 @@ def create_variants_kb(article, variants):
         # Создаем кнопку
         buttons.append([InlineKeyboardButton(text=button_name, callback_data=button_callback_data)])
 
+    # Добавляем кнопку "Отмена"
+    buttons.append([InlineKeyboardButton(text='Отмена', callback_data='cancel')])
+
     # Создаем список списков кнопок
     inline_keyboard = buttons
 
@@ -62,14 +69,33 @@ def create_variants_kb(article, variants):
 # Функция создающая клавиатуру с 2 кнопками "Модификации товара" и "Показать фото"
 def create_options_kb(article):
     # Создаем кнопку "Модификации товара"
-    button_variants = InlineKeyboardButton(text='Модификации товара', callback_data=str(article) + '_variants')
+    button_variants = InlineKeyboardButton(text='Модификации и остатки товара', callback_data=str(article) + '_variants')
     # Создаем кнопку "Показать фото"
     button_photo = InlineKeyboardButton(text='Показать фото', callback_data=str(article) + '_photo')
     # Создаем кнопку "Продать товар"
     button_sell = InlineKeyboardButton(text='Продать товар', callback_data=str(article) + '_sell')
+    # Создаем кнопку отмены и сброса состояния, что бы сработал обработчик '/cancel'. Кнопка должна писать в чат
+    # '/cancel'
+    button_cancel = InlineKeyboardButton(text='Отмена', callback_data='cancel')
 
     # Создаем список списков кнопок
-    inline_keyboard = [[button_variants], [button_photo], [button_sell]]
+    inline_keyboard = [[button_variants], [button_photo], [button_sell], [button_cancel]]
 
     # Возвращаем объект инлайн-клавиатуры
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+
+
+# Функция создающая клавиатуру с 1 кнопкой "Отмена"
+def create_cancel_kb():
+    # Создаем кнопку отмены и сброса состояния, что бы сработал обработчик '/cancel'. Кнопка должна писать в чат
+    # '/cancel'
+    button_cancel = InlineKeyboardButton(text='Отмена', callback_data='cancel')
+
+    # Создаем список списков кнопок
+    inline_keyboard = [[button_cancel]]
+
+    # Возвращаем объект инлайн-клавиатуры
+    return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+
+
+# Функция создания клавиатуры для обработчиков /report.

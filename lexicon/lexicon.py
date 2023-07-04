@@ -5,7 +5,8 @@ LEXICON_RU: dict[str, str] = {
                'методом send_copy',
 }
 LEXICON_COMMANDS_RU: dict[str, str] = {
+    '/start': 'Начать работу с ботом',
     '/show': 'Список товаров',
     '/add': 'Добавить товар',
-    'cancel': 'Отмена',
+    '/cancel': 'Отмена',
 }
