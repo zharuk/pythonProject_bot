@@ -1,4 +1,11 @@
+import datetime
+import json
+from services.redis_server import create_redis_client, check_and_create_structure_reports
+
 from aiogram.types import InputMediaPhoto
+
+r = create_redis_client()
+
 
 # Класс для создания экземпляров товаров
 # При создании экземпляра класса Product, мы передаем в него все необходимые параметры
@@ -68,3 +75,135 @@ def generate_photos(variants: list) -> list:
     photos = [photo_id['id'] for photo_id in variants]
     media = [InputMediaPhoto(media=photo_id) for photo_id in photos]
     return media
+
+
+# Функция для добавления товара в проданные
+def sell_product(sku: str, quantity: int):
+    # Обрезаем артикул до основного значения
+    main_sku = sku.split('-')[0]
+
+    # Получаем данные из базы данных
+    product_data = r.get(main_sku)
+    if product_data is None:
+        return 'Товар не найден в базе данных!'
+
+    # Конвертируем данные из JSON в словарь
+    main_product = json.loads(product_data)
+
+    # Получаем варианты товара
+    variants = main_product['variants']
+
+    # Находим нужную комплектацию из всех вариантов
+    for variant in variants:
+        if variant['sku'] == sku:
+            # Получаем нужную комплектацию товара
+            required = variant
+
+    # Проверяем наличие достаточного количества товара
+    if required['stock'] < quantity:
+        return 'Недостаточное количество товара на складе!'
+    else:
+        # Вычитаем проданный товар из остатков
+        required['stock'] -= quantity
+
+    # Обновляем остатки товара в базе данных
+    r.set(main_sku, json.dumps(main_product))
+
+    # Получаем текущую дату и время
+    current_date = datetime.datetime.now().strftime('%d.%m.%Y')
+    current_time = datetime.datetime.now().strftime('%H:%M:%S')
+
+    # Проверяем структуру reports функцией check_and_create_structure_reports
+    check_and_create_structure_reports()
+
+    # Получаем текущий отчет sold_products из базы данных
+    report_data = r.get('reports')
+    if report_data is not None:
+        # Если отчет уже существует, конвертируем его из JSON в словарь
+        existing_report = json.loads(report_data)
+        if 'sold_products' in existing_report:
+            # Если есть запись sold_products, добавляем проданный товар к существующей записи
+            existing_report['sold_products'][current_date].append({
+                'sku': sku,
+                'quantity': quantity,
+                'price': int(required['price']),
+                'total': int(quantity) * int(required['price']),
+                'time': current_time
+            })
+        else:
+            # Если записи sold_products нет, создаем новую запись
+            existing_report['sold_products'] = {current_date: [{
+                'sku': sku,
+                'quantity': quantity,
+                'price': int(required['price']),
+                'total': int(quantity) * int(required['price']),
+                'time': current_time
+            }]}
+        # Обновляем отчет в базе данных
+        r.set('reports', json.dumps(existing_report))
+
+    return True
+
+
+# Функция для возврата товара и формирования отчета работает по принципу функции sell_product
+def return_product(sku: str, quantity: int):
+    # Обрезаем артикул до основного значения
+    main_sku = sku.split('-')[0]
+
+    # Получаем данные из базы данных
+    product_data = r.get(main_sku)
+    if product_data is None:
+        return 'Товар не найден в базе данных!'
+
+    # Конвертируем данные из JSON в словарь
+    main_product = json.loads(product_data)
+
+    # Получаем варианты товара
+    variants = main_product['variants']
+
+    # Находим нужную комплектацию из всех вариантов
+    for variant in variants:
+        if variant['sku'] == sku:
+            # Получаем нужную комплектацию товара
+            required = variant
+
+    # Прибавляем возвращенный товар к остаткам
+    required['stock'] += quantity
+
+    # Обновляем остатки товара в базе данных
+    r.set(main_sku, json.dumps(main_product))
+
+    # Получаем текущую дату и время
+    current_date = datetime.datetime.now().strftime('%d.%m.%Y')
+    current_time = datetime.datetime.now().strftime('%H:%M:%S')
+
+    # Проверяем структуру reports функцией check_and_create_structure_reports
+    check_and_create_structure_reports()
+
+    # Получаем текущий отчет return_products из базы данных
+    report_data = r.get('reports')
+    if report_data is not None:
+        # Если отчет уже существует, конвертируем его из JSON в словарь
+        existing_report = json.loads(report_data)
+        if 'return_products' in existing_report:
+            # Если есть запись return_products, добавляем проданный товар к существующей записи
+            existing_report['return_products'][current_date].append({
+                'sku': sku,
+                'quantity': quantity,
+                'price': int(required['price']),
+                'total': int(quantity) * int(required['price']),
+                'time': current_time
+            })
+        else:
+            # Если записи return_products нет, создаем новую запись
+            existing_report['return_products'] = {current_date: [{
+                'sku': sku,
+                'quantity': quantity,
+                'price': int(required['price']),
+                'total': int(quantity) * int(required['price']),
+                'time': current_time
+            }]}
+        # Обновляем отчет в базе данных
+        r.set('reports', json.dumps(existing_report))
+
+    return True

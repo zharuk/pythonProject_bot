@@ -32,7 +32,7 @@ async def process_name_sent(message: Message, state: FSMContext):
     await state.set_state(FSMAddProduct.fill_description)
 
 
-# Этот хэндлер будет срабатывать, если введено корректное описание товара
+# Этот хендлер будет срабатывать, если введено корректное описание товара
 # и переводить в состояние ожидания ввода артикула товара
 @router.message(StateFilter(FSMAddProduct.fill_description))
 async def process_desc_sent(message: Message, state: FSMContext):

@@ -1,4 +1,4 @@
-import json
+import asyncio
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from services.redis_server import create_redis_client
 
@@ -7,9 +7,9 @@ r = create_redis_client()
 
 
 # Функция для формирования инлайн-клавиатуры, где кнопки являются ключами из Redis т.е артикулами товаров
-def create_sku_kb():
+async def create_sku_kb():
     # Получаем ключи из Redis
-    keys = r.keys()
+    keys = await asyncio.get_event_loop().run_in_executor(None, r.keys)
 
     # Инициализируем список для кнопок
     buttons = []
@@ -42,7 +42,7 @@ def create_sku_kb():
 # Например, название кнопки: sku = '121-1', 'color': 'черный', 'size': 'S' -> '121-1 черный S'.
 # В callback_data кнопки записывается артикул модификация товара sku в словаре 'variants'.
 # На вход функция принимает артикул товара и список словарей 'variants' и формирует клавиатуру.
-def create_variants_kb(article, variants):
+async def create_variants_kb(variants):
     # Инициализируем список для кнопок
     buttons = []
 
@@ -67,7 +67,7 @@ def create_variants_kb(article, variants):
 
 
 # Функция создающая клавиатуру с 2 кнопками "Модификации товара" и "Показать фото"
-def create_options_kb(article):
+async def create_options_kb(article):
     # Создаем кнопку "Модификации товара"
     button_variants = InlineKeyboardButton(text='Модификации и остатки товара', callback_data=str(article) + '_variants')
     # Создаем кнопку "Показать фото"
@@ -86,7 +86,7 @@ def create_options_kb(article):
 
 
 # Функция создающая клавиатуру с 1 кнопкой "Отмена"
-def create_cancel_kb():
+async def create_cancel_kb():
     # Создаем кнопку отмены и сброса состояния, что бы сработал обработчик '/cancel'. Кнопка должна писать в чат
     # '/cancel'
     button_cancel = InlineKeyboardButton(text='Отмена', callback_data='cancel')
@@ -98,4 +98,25 @@ def create_cancel_kb():
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
 
-# Функция создания клавиатуры для обработчиков /report.
+# Функция создания клавиатуры для обработчиков /report. Функция формирует 6 кнопки продажи за сегодня, продажи за
+# неделю, продажи за месяц и продажи за год и выбрать период и кнопка отмены
+async def create_report_kb():
+    # Создаем кнопку "Продажи за сегодня"
+    button_today = InlineKeyboardButton(text='Продажи за сегодня', callback_data='today')
+    # Создаем кнопку "Продажи за неделю"
+    button_week = InlineKeyboardButton(text='Продажи за неделю', callback_data='week')
+    # Создаем кнопку "Продажи за месяц"
+    button_month = InlineKeyboardButton(text='Продажи за месяц', callback_data='month')
+    # Создаем кнопку "Продажи за год"
+    button_year = InlineKeyboardButton(text='Продажи за год', callback_data='year')
+    # Создаем кнопку "Выбрать период"
+    button_period = InlineKeyboardButton(text='Выбрать период', callback_data='period')
+    # Создаем кнопку отмены и сброса состояния, что бы сработал обработчик '/cancel'. Кнопка должна писать в чат
+    # '/cancel'
+    button_cancel = InlineKeyboardButton(text='Отмена', callback_data='cancel')
+
+    # Создаем список списков кнопок
+    inline_keyboard = [[button_today, button_week], [button_month, button_year], [button_period], [button_cancel]]
+
+    # Возвращаем объект инлайн-клавиатуры
+    return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)

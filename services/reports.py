@@ -1,146 +1,11 @@
 import datetime
 import json
 
-from services.redis_server import create_redis_client
+from services.redis_server import create_redis_client, check_and_create_structure_reports
 
 # Подключение к базе данных Redis
-redis_db = create_redis_client()
+r = create_redis_client()
 
-
-# Функция для добавления товара в проданные
-def sell_product(sku: str, quantity: int):
-    # Обрезаем артикул до основного значения
-    main_sku = sku.split('-')[0]
-
-    # Получаем данные из базы данных
-    product_data = redis_db.get(main_sku)
-    if product_data is None:
-        return 'Товар не найден в базе данных!'
-
-    # Конвертируем данные из JSON в словарь
-    main_product = json.loads(product_data)
-
-    # Получаем варианты товара
-    variants = main_product['variants']
-
-    # Находим нужную комплектацию из всех вариантов
-    for variant in variants:
-        if variant['sku'] == sku:
-            # Получаем нужную комплектацию товара
-            required = variant
-
-    # Проверяем наличие достаточного количества товара
-    if required['stock'] < quantity:
-        return 'Недостаточное количество товара на складе!'
-    else:
-        # Вычитаем проданный товар из остатков
-        required['stock'] -= quantity
-
-    # Обновляем остатки товара в базе данных
-    redis_db.set(main_sku, json.dumps(main_product))
-
-    # Получаем текущую дату и время
-    current_date = datetime.datetime.now().strftime('%d.%m.%Y')
-    current_time = datetime.datetime.now().strftime('%H:%M:%S')
-
-    # Проверяем есть ли в бд ключ reports и если нет, то создаем его словарь с такой структурой: reports = {
-    # 'sold_products': {'date': [{'sku': sku, 'quantity': quantity, 'price': price, 'total': total, 'time': time}]}}
-    if redis_db.get('reports') is None:
-        redis_db.set('reports', json.dumps({'sold_products': {current_date: []}}))
-
-    # Получаем текущий отчет sold_products из базы данных
-    report_data = redis_db.get('reports')
-    if report_data is not None:
-        # Если отчет уже существует, конвертируем его из JSON в словарь
-        existing_report = json.loads(report_data)
-        if 'sold_products' in existing_report:
-            # Если есть запись sold_products, добавляем проданный товар к существующей записи
-            existing_report['sold_products'][current_date].append({
-                'sku': sku,
-                'quantity': quantity,
-                'price': int(required['price']),
-                'total': int(quantity) * int(required['price']),
-                'time': current_time
-            })
-        else:
-            # Если записи sold_products нет, создаем новую запись
-            existing_report['sold_products'] = {current_date: [{
-                'sku': sku,
-                'quantity': quantity,
-                'price': int(required['price']),
-                'total': int(quantity) * int(required['price']),
-                'time': current_time
-            }]}
-        # Обновляем отчет в базе данных
-        redis_db.set('reports', json.dumps(existing_report))
-
-    return True
-
-
-# Функция для возврата товара и формирования отчета работает по принципу функции sell_product
-def return_product(sku: str, quantity: int):
-    # Обрезаем артикул до основного значения
-    main_sku = sku.split('-')[0]
-
-    # Получаем данные из базы данных
-    product_data = redis_db.get(main_sku)
-    if product_data is None:
-        return 'Товар не найден в базе данных!'
-
-    # Конвертируем данные из JSON в словарь
-    main_product = json.loads(product_data)
-
-    # Получаем варианты товара
-    variants = main_product['variants']
-
-    # Находим нужную комплектацию из всех вариантов
-    for variant in variants:
-        if variant['sku'] == sku:
-            # Получаем нужную комплектацию товара
-            required = variant
-
-    # Прибавляем возвращенный товар к остаткам
-    required['stock'] += quantity
-
-    # Обновляем остатки товара в базе данных
-    redis_db.set(main_sku, json.dumps(main_product))
-
-    # Получаем текущую дату и время
-    current_date = datetime.datetime.now().strftime('%d.%m.%Y')
-    current_time = datetime.datetime.now().strftime('%H:%M:%S')
-
-    # Проверяем есть ли в бд ключ reports и если нет, то создаем его словарь с такой структурой: reports = {
-    # 'return_products': {'date': [{'sku': sku, 'quantity': quantity, 'price': price, 'total': total, 'time': time}]}}
-    if redis_db.get('reports') is None:
-        redis_db.set('reports', json.dumps({'return_products': {current_date: []}}))
-
-    # Получаем текущий отчет return_products из базы данных
-    report_data = redis_db.get('reports')
-    if report_data is not None:
-        # Если отчет уже существует, конвертируем его из JSON в словарь
-        existing_report = json.loads(report_data)
-        if 'return_products' in existing_report:
-            # Если есть запись return_products, добавляем проданный товар к существующей записи
-            existing_report['return_products'][current_date].append({
-                'sku': sku,
-                'quantity': quantity,
-                'price': int(required['price']),
-                'total': int(quantity) * int(required['price']),
-                'time': current_time
-            })
-        else:
-            # Если записи return_products нет, создаем новую запись
-            existing_report['return_products'] = {current_date: [{
-                'sku': sku,
-                'quantity': quantity,
-                'price': int(required['price']),
-                'total': int(quantity) * int(required['price']),
-                'time': current_time
-            }]}
-        # Обновляем отчет в базе данных
-        redis_db.set('reports', json.dumps(existing_report))
-
-    return True
 
 # Функция get_sales_today_report() для получения отчета по продажам из словаря reports за текущий день. Словарь
 # reports имеет следующую структуру: reports = {'sold_products': {'date': [{'sku': sku, 'quantity': quantity,
@@ -157,7 +22,7 @@ def get_sales_today_report():
     # сумму продаж. Возвращает список словарей.
     def get_sales_report_by_date(date):
         # Получаем отчет по продажам за день
-        report_data = redis_db.get('reports')
+        report_data = r.get('reports')
         if report_data is not None:
             # Если отчет уже существует, конвертируем его из JSON в словарь
             existing_report = json.loads(report_data)
@@ -187,7 +52,7 @@ def get_sales_today_report():
     # сумму продаж. Возвращает список словарей. Работает так же как и функция get_sales_report_by_date()
     def get_return_report_by_date(date):
         # Получаем отчет по возвратам за день
-        report_data = redis_db.get('reports')
+        report_data = r.get('reports')
         if report_data is not None:
             # Если отчет уже существует, конвертируем его из JSON в словарь
             existing_report = json.loads(report_data)
@@ -258,4 +123,3 @@ def get_sales_today_report():
     report += f'Всего возвращено {total_for_return} товара на сумму {return_total}грн.\n\nИтого касса за день 💰 с ' \
               f'учетом возвратов: {total}грн.'
     return report
-

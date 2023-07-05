@@ -12,9 +12,9 @@ async def cancel_handler(message: Message, state: FSMContext):
     # Сбрасываем состояние
     await state.clear()
     # Сообщаем пользователю, что состояние успешно сброшено
-    await message.answer('Вы отменили текущую операцию. \nНажмите /start для выхода в главное меню\nНажмите /show для '
-                         'просмотра товаров \nнажмите /add для'
-                         'добавления товара')
+    await message.answer('Вы отменили текущую операцию. \n\nНажмите /start для выхода в главное меню\nНажмите /show для'
+                         'просмотра товаров \nнажмите /add для добавления товара\n нажимте /report для отчета по '
+                         'продажам')
 
 
 # Обработчик команды /cancel на callback_data='/cancel'
@@ -23,8 +23,9 @@ async def cancel_handler(callback_query: Message, state: FSMContext):
     # Сбрасываем состояние
     await state.clear()
     # Сообщаем пользователю, что состояние успешно сброшено
-    await callback_query.message.answer(
-        'Вы отменили текущую операцию. \nНажмите /start для выхода в главное меню\nНажмите /show для '
-        'просмотра товаров \nнажмите /add для'
-        'добавления товара')
+    await callback_query.message.answer('Вы отменили текущую операцию. \n\nНажмите /start для выхода в главное '
+                                        'меню\nНажмите /show для'
+                                        'просмотра товаров \nнажмите /add для добавления товара\n нажимте /report для '
+                                        'отчета по'
+                                        'продажам')
     await callback_query.answer()
