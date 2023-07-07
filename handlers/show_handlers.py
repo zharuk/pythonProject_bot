@@ -2,9 +2,9 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
-from FSM.fsm import SellItemStates
+from FSM.fsm import SellItemStates, ReturnItemStates
 from keyboards.keyboards import create_sku_kb, create_options_kb, create_variants_kb, create_cancel_kb
-from services.product import format_variants_message, generate_photos, format_main_info
+from services.product import format_variants_message, generate_photos, format_main_info, return_product
 import json
 from services.redis_server import create_redis_client
 from services.product import sell_product
@@ -23,7 +23,7 @@ async def process_show_command(message: Message):
 
 
 # Обработчик для кнопок с артикулами товаров в которых callback_data = артикулу товара
-@router.callback_query(lambda callback_query: len(callback_query.data) < 4)
+@router.callback_query(lambda callback_query: callback_query.data.isdigit())
 async def process_callback_query(callback_query: CallbackQuery):
     # Получаем значение артикула товара из callback_data
     article = callback_query.data
@@ -82,18 +82,18 @@ async def process_callback_query(callback_query: CallbackQuery):
 
 
 # Обработчик для кнопки "Продать товар" в которой callback_data = '_sell', выводит список товаров
-@router.callback_query(lambda callback_query: '_sell' in callback_query.data)
+@router.callback_query(lambda callback_query: '_sell_button' in callback_query.data)
 async def process_callback_query(callback_query: CallbackQuery):
     # Получаем значение артикула товара из callback_data
-    article = callback_query.data.split('_')[0]
+    main_article = callback_query.data.split('_')[0]
     # Получаем значение из Redis по артикулу
-    value = r.get(article)
+    value = r.get(main_article)
     # Преобразуем значение в словарь json
     json_value = json.loads(value)
     # Получаем значение variants из json_value
     json_value_variants = json_value['variants']
     # Создаем клавиатуру с вариантами товара
-    kb = await create_variants_kb(json_value_variants)
+    kb = await create_variants_kb(json_value_variants, for_what='_sell_variant')
     # Отправляем клавиатуру пользователю
     await callback_query.message.answer(text='Выберите товар или нажмите отмена 👇', reply_markup=kb)
     await callback_query.answer()
@@ -101,17 +101,15 @@ async def process_callback_query(callback_query: CallbackQuery):
 
 # Обработчик, который срабатывает при нажатии на кнопку с вариантом товара и просит ввести количество продаваемого
 # товара сообщением "Введите количество:"
-@router.callback_query(lambda callback_query: '-' in callback_query.data)
+@router.callback_query(lambda callback_query: '_sell_variant' in callback_query.data)
 async def process_callback_query(callback_query: CallbackQuery, state: FSMContext):
     # Получаем значение артикула товара из callback_data
-    article = callback_query.data.split('_')[0]
-    article_variant = callback_query.data
+    article_variant = callback_query.data.split('_')[0]
     # Устанавливаем FSM SellItemStates article
     await state.update_data(article_variant=article_variant)
-    data = await state.get_data()
     # Переводим в состояние SellItemStates.quantity
     await state.set_state(SellItemStates.quantity)
-    # Создаем клаватуру с кнопкой "Отмена"
+    # Создаем клавиатуру с кнопкой "Отмена"
     kb = await create_cancel_kb()
     # Отвечаем пользователю сообщением "Введите количество:"
     await callback_query.message.answer(text='Введите количество или нажмите <b>отмена</b>', reply_markup=kb)
@@ -162,3 +160,79 @@ async def process_quantity(message: Message, state: FSMContext):
     await message.answer(text='Введите число от 1 до 100 или нажмите <b>отмена</b>', reply_markup=kb)
 
 
+# Обработчик кнопки вернуть товар
+@router.callback_query(lambda callback_query: '_return_button' in callback_query.data)
+async def process_callback_query(callback_query: CallbackQuery):
+    # Получаем значение артикула товара из callback_data
+    main_article = callback_query.data.split('_')[0]
+    # Получаем значение из Redis по артикулу
+    value = r.get(main_article)
+    # Преобразуем значение в словарь json
+    json_value = json.loads(value)
+    # Получаем значение variants из json_value
+    json_value_variants = json_value['variants']
+    # Создаем клавиатуру с вариантами товара
+    kb = await create_variants_kb(json_value_variants, for_what='_return_variant')
+    # Отправляем клавиатуру пользователю
+    await callback_query.message.answer(text='Выберите товар для возврата или нажмите отмена 👇', reply_markup=kb)
+    await callback_query.answer()
+
+
+# Обработчик, который срабатывает при нажатии на кнопку с вариантом товара и просит ввести количество возвращаемого
+# товара сообщением "Введите количество:"
+@router.callback_query(lambda callback_query: '_return_variant' in callback_query.data)
+async def process_callback_query(callback_query: CallbackQuery, state: FSMContext):
+    # Получаем значение артикула товара из callback_data
+    article_variant = callback_query.data.split('_')[0]
+    # Устанавливаем FSM SellItemStates article
+    await state.update_data(article_variant=article_variant)
+    # Переводим в состояние SellItemStates.quantity
+    await state.set_state(ReturnItemStates.quantity)
+    # Создаем клавиатуру с кнопкой "Отмена"
+    kb = await create_cancel_kb()
+    # Отвечаем пользователю сообщением "Введите количество:"
+    await callback_query.message.answer(text='Введите количество или нажмите <b>отмена</b>', reply_markup=kb)
+    await callback_query.answer()
+
+
+# Обработчик, который обрабатывает введенное число пользователем
+@router.message(lambda x: x.text and x.text.isdigit() and 1 <= int(x.text) <= 100, ReturnItemStates.quantity)
+async def process_quantity(message: Message, state: FSMContext):
+    # Получаем значение введенное пользователем
+    quantity = int(message.text)
+    # Получаем значение article_variant из FSM
+    data = await state.get_data()
+    article_variant = data.get("article_variant")
+    # Получаем значение из Redis по артикулу
+    value = r.get(article_variant.split('-')[0])
+    # Преобразуем значение в словарь json
+    json_value = json.loads(value)
+    # вывод комплектаций товара
+    value_variants = json_value['variants']
+    # Получаем название товара
+    name = ''
+    for i in value_variants:
+        if i['sku'] == article_variant:
+            name = i['name']
+            break
+    # вызываем функцию return_product
+    if return_product(article_variant, quantity) is True:
+        # Пишем сообщение пользователю, что товар продан в количестве quantity штук
+        await message.answer(text=f'Товар {name} возвращен в количестве {quantity} шт.')
+        # Выводим список товаров
+        await message.answer(text='Перейти к списку товаров /show')
+        # Переводим в состояние default
+        await state.clear()
+    else:
+        # Пишем сообщение пользователю, что товара не хватает на складе
+        await message.answer(text='При возврате товара произошла ошибка. Попробуйте еще раз или нажмите "Отмена"')
+
+
+# Обработчик, если было введено не число от 1 до 100
+@router.message(lambda x: x.text and not x.text.isdigit() or int(x.text) < 1 or int(x.text) > 100,
+                ReturnItemStates.quantity)
+async def process_quantity(message: Message, state: FSMContext):
+    # Делаем клавиатуру с одной кнопкой "Отмена"
+    kb = await create_cancel_kb()
+    # Пишем сообщение пользователю, что было введено не число от 1 до 100
+    await message.answer(text='Введите число от 1 до 100 или нажмите <b>отмена</b>', reply_markup=kb)

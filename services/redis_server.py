@@ -13,7 +13,7 @@ def create_redis_client():
 
 
 # Функция проверка наличия ключа "reports" и далее полную структуру отчетов в Redis
-async def check_and_create_structure_reports():
+def check_and_create_structure_reports():
     # Подключение к базе данных Redis
     r = create_redis_client()
 
@@ -47,3 +47,4 @@ async def check_and_create_structure_reports():
 
     # Кодирование и сохранение структуры "reports" в базе данных Redis
     r.set('reports', json.dumps(reports))
+

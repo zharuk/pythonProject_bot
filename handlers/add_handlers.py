@@ -4,6 +4,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from FSM.fsm import FSMAddProduct
 from aiogram.types import Message
+
+from keyboards.keyboards import create_cancel_kb
 from services.product import Product
 import json
 from services.redis_server import create_redis_client
@@ -16,6 +18,7 @@ r = create_redis_client()
 # и переводить бота в состояние ожидания ввода имени
 @router.message(Command(commands='add'), StateFilter(default_state))
 async def process_add_command(message: Message, state: FSMContext):
+    # Отправляем сообщение с просьбой ввести имя товара
     await message.answer(text='Введите имя товара или для отмены введите /cancel')
     # Устанавливаем состояние ожидания ввода имени
     await state.set_state(FSMAddProduct.fill_name)

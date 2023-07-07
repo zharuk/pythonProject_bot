@@ -19,3 +19,7 @@ class FSMAddProduct(StatesGroup):
 # Создаем класс состояний FSM
 class SellItemStates(StatesGroup):
     quantity = State()
+
+
+class ReturnItemStates(StatesGroup):
+    quantity = State()
