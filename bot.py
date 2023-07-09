@@ -1,7 +1,7 @@
 import asyncio
 from aiogram import Bot, Dispatcher
 from config_data.config import Config, load_config
-from handlers import add_handlers, show_handlers, cancel_hadlers, start_handlers, reports_handlers
+from handlers import add_handlers, show_handlers, cancel_hadlers, start_handlers, reports_handlers, all_handlers
 from keyboards.set_menu import set_main_menu
 import logging
 
@@ -35,6 +35,7 @@ async def main():
     dp.include_router(add_handlers.router)
     dp.include_router(show_handlers.router)
     dp.include_router(reports_handlers.router)
+    dp.include_router(all_handlers.router)
 
     # Пропускаем накопившиеся апдейты и запускаем polling
     await bot.delete_webhook(drop_pending_updates=True)
