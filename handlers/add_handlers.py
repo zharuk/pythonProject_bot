@@ -18,8 +18,10 @@ r = create_redis_client()
 # и переводить бота в состояние ожидания ввода имени
 @router.message(Command(commands='add'), StateFilter(default_state))
 async def process_add_command(message: Message, state: FSMContext):
+    # Создаем клавиатуру для отмены
+    kb = await create_cancel_kb()
     # Отправляем сообщение с просьбой ввести имя товара
-    await message.answer(text='Введите имя товара или для отмены введите /cancel')
+    await message.answer(text='Введите имя товара или нажмите отмена', reply_markup=kb)
     # Устанавливаем состояние ожидания ввода имени
     await state.set_state(FSMAddProduct.fill_name)
 
@@ -28,9 +30,11 @@ async def process_add_command(message: Message, state: FSMContext):
 # и переводить в состояние ожидания ввода описания товара
 @router.message(StateFilter(FSMAddProduct.fill_name))
 async def process_name_sent(message: Message, state: FSMContext):
+    # Создаем клавиатуру для отмены
+    kb = await create_cancel_kb()
     # Cохраняем введенное имя в хранилище по ключу "name"
     await state.update_data(name=message.text)
-    await message.answer(text='Спасибо!\n\nА теперь введите описание товара')
+    await message.answer(text='Спасибо!\n\nА теперь введите описание товара', reply_markup=kb)
     # Устанавливаем состояние ожидания ввода описания товара
     await state.set_state(FSMAddProduct.fill_description)
 
@@ -39,9 +43,11 @@ async def process_name_sent(message: Message, state: FSMContext):
 # и переводить в состояние ожидания ввода артикула товара
 @router.message(StateFilter(FSMAddProduct.fill_description))
 async def process_desc_sent(message: Message, state: FSMContext):
+    # Создаем клавиатуру для отмены
+    kb = await create_cancel_kb()
     # Cохраняем введенное описание в хранилище по ключу "description"
     await state.update_data(description=message.text)
-    await message.answer(text='Спасибо!\n\nА теперь введите артикул товара')
+    await message.answer(text='Спасибо!\n\nА теперь введите артикул товара', reply_markup=kb)
     # Устанавливаем состояние ожидания ввода описания товара
     await state.set_state(FSMAddProduct.fill_sku)
 
@@ -50,20 +56,30 @@ async def process_desc_sent(message: Message, state: FSMContext):
 # и переводить в состояние ожидания ввода цветов товара
 @router.message(StateFilter(FSMAddProduct.fill_sku))
 async def process_sku_sent(message: Message, state: FSMContext):
-    # Cохраняем введенный артикул в хранилище по ключу "sku"
-    await state.update_data(sku=message.text)
-    await message.answer(text='Спасибо!\n\nА теперь введите цвета товаров через пробел')
-    # Устанавливаем состояние ожидания ввода цветов товара
-    await state.set_state(FSMAddProduct.fill_colors)
+    # Создаем клавиатуру для отмены
+    kb = await create_cancel_kb()
+    # Проверяем нет ли введенного артикула пользователя в базе данных и если есть, то сообщаем что такой товар уже есть
+    if r.get(message.text):
+        await message.answer(text='Товар с таким артикулом уже есть в базе данных!\n\n'
+                                  'Введите другой артикул или для отмены введите /cancel', reply_markup=kb)
+        return
+    else:
+        # Cохраняем введенный артикул в хранилище по ключу "sku"
+        await state.update_data(sku=message.text)
+        await message.answer(text='Спасибо!\n\nА теперь введите цвета товаров через пробел', reply_markup=kb)
+        # Устанавливаем состояние ожидания ввода цветов товара
+        await state.set_state(FSMAddProduct.fill_colors)
 
 
 # Этот хэндлер будет срабатывать, если введены корректный артикул товара
 # и переводить в состояние ожидания ввода цветов товара
 @router.message(StateFilter(FSMAddProduct.fill_colors))
 async def process_colors_sent(message: Message, state: FSMContext):
+    # Создаем клавиатуру для отмены
+    kb = await create_cancel_kb()
     # Cохраняем введенные цвета в хранилище по ключу "colors"
     await state.update_data(colors=message.text)
-    await message.answer(text='Спасибо!\n\nА теперь введите размеры товаров через пробел')
+    await message.answer(text='Спасибо!\n\nА теперь введите размеры товаров через пробел', reply_markup=kb)
     # Устанавливаем состояние ожидания ввода размеров товара
     await state.set_state(FSMAddProduct.fill_sizes)
 
@@ -72,9 +88,11 @@ async def process_colors_sent(message: Message, state: FSMContext):
 # и переводить в состояние ожидания ввода цветов товара
 @router.message(StateFilter(FSMAddProduct.fill_colors))
 async def process_colors_sent(message: Message, state: FSMContext):
+    # Создаем клавиатуру для отмены
+    kb = await create_cancel_kb()
     # Cохраняем введенные цвета в хранилище по ключу "colors"
     await state.update_data(colors=message.text)
-    await message.answer(text='Спасибо!\n\nА теперь введите размеры товаров через пробел')
+    await message.answer(text='Спасибо!\n\nА теперь введите размеры товаров через пробел', reply_markup=kb)
     # Устанавливаем состояние ожидания ввода размеров товара
     await state.set_state(FSMAddProduct.fill_sizes)
 
@@ -83,9 +101,11 @@ async def process_colors_sent(message: Message, state: FSMContext):
 # и переводить в состояние ожидания ввода цены товара
 @router.message(StateFilter(FSMAddProduct.fill_sizes))
 async def process_sizes_sent(message: Message, state: FSMContext):
+    # Создаем клавиатуру для отмены
+    kb = await create_cancel_kb()
     # Cохраняем введенные размеры в хранилище по ключу "sizes"
     await state.update_data(sizes=message.text)
-    await message.answer(text='Спасибо!\n\nА теперь введите цену товара')
+    await message.answer(text='Спасибо!\n\nА теперь введите цену товара', reply_markup=kb)
     # Устанавливаем состояние ожидания ввода размеров товара
     await state.set_state(FSMAddProduct.fill_price)
 
@@ -94,9 +114,11 @@ async def process_sizes_sent(message: Message, state: FSMContext):
 # и переходить к загрузке фото
 @router.message(StateFilter(FSMAddProduct.fill_price))
 async def process_price_sent(message: Message, state: FSMContext):
+    # Создаем клавиатуру для отмены
+    kb = await create_cancel_kb()
     # Cохраняем введенную цену в хранилище по ключу "price"
     await state.update_data(price=message.text)
-    await message.answer(text='Спасибо!\n\nА теперь загрузите фото товара')
+    await message.answer(text='Спасибо!\n\nА теперь загрузите фото товара', reply_markup=kb)
     # Устанавливаем состояние ожидания ввода загрузки фото товаров товара
     await state.set_state(FSMAddProduct.fill_photo)
 

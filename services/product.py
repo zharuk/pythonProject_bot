@@ -65,7 +65,7 @@ def format_variants_message(variants: list) -> str:
         message += f"➡️ Комплектация: {color} {size}\n"
         message += f"Артикул: {sku}\n"
         message += f"Цена: {price} \n"
-        message += f"✅ На складе: <b>{stock}</b>\n\n" if stock > 0 else '<b>❌ Нет в наличии</b>\n\n'
+        message += f"✅ На складе: <b>{stock}</b>\n\n" if int(stock) > 0 else '<b>❌ Нет в наличии</b>\n\n'
     return message
 
 
@@ -81,6 +81,7 @@ def generate_photos(variants: list) -> list:
 def sell_product(sku: str, quantity: int):
     # Обрезаем артикул до основного значения
     main_sku = sku.split('-')[0]
+    required = None
 
     # Получаем данные из базы данных
     product_data = r.get(main_sku)
@@ -100,6 +101,7 @@ def sell_product(sku: str, quantity: int):
             required = variant
 
     # Проверяем наличие достаточного количества товара
+    required['stock'] = int(required['stock'])
     if required['stock'] < quantity:
         return 'Недостаточное количество товара на складе!'
     else:
@@ -149,6 +151,7 @@ def sell_product(sku: str, quantity: int):
 def return_product(sku: str, quantity: int):
     # Обрезаем артикул до основного значения
     main_sku = sku.split('-')[0]
+    required = None
 
     # Получаем данные из базы данных
     product_data = r.get(main_sku)
@@ -168,6 +171,7 @@ def return_product(sku: str, quantity: int):
             required = variant
 
     # Прибавляем возвращенный товар к остаткам
+    required['stock'] = int(required['stock'])
     required['stock'] += quantity
 
     # Обновляем остатки товара в базе данных

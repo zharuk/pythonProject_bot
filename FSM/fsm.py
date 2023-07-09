@@ -23,3 +23,14 @@ class SellItemStates(StatesGroup):
 
 class ReturnItemStates(StatesGroup):
     quantity = State()
+
+
+class FSMEditProduct(StatesGroup):
+    edit_name = State()
+    edit_description = State()
+    edit_sku = State()
+    edit_color = State()
+    edit_size = State()
+    edit_price = State()
+    edit_stock = State()
+    edit_photo = State()

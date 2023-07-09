@@ -48,3 +48,5 @@ def check_and_create_structure_reports():
     # Кодирование и сохранение структуры "reports" в базе данных Redis
     r.set('reports', json.dumps(reports))
 
+    return True
+

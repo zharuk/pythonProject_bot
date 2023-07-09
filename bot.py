@@ -29,7 +29,7 @@ async def main():
     # Настраиваем меню
     await set_main_menu(bot)
 
-    # Регистриуем роутеры в диспетчере
+    # Регистрируем роутеры в диспетчере
     dp.include_router(start_handlers.router)
     dp.include_router(cancel_hadlers.router)
     dp.include_router(add_handlers.router)

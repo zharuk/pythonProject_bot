@@ -18,6 +18,8 @@ r = create_redis_client()
 
 
 def get_sales_today_report():
+    # Проверяем структуру reports функцией check_and_create_structure_reports
+    check_and_create_structure_reports()
     # Функция для получения отчета по продажам за текущий день. Слаживает все одинаковые товары, их количество и
     # сумму продаж. Возвращает список словарей.
     def get_sales_report_by_date(date):
