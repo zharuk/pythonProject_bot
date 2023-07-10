@@ -24,17 +24,21 @@ async def create_sku_kb():
         buttons.append(InlineKeyboardButton(text=key_sku, callback_data=key_sku))
 
     # Сортируем кнопки по возрастанию
-    buttons.sort(key=lambda x: x.text)
+    buttons.sort(key=lambda x: int(x.text))
+
+    # Разбиваем кнопки на строки по 8 кнопок в каждой
+    rows = [buttons[i:i + 8] for i in range(0, len(buttons), 8)]
 
     # Создаем список списков кнопок
-    inline_keyboard = [buttons]
+    inline_keyboard = rows
     # Создаем кнопку "Отмена"
     cancel_button = InlineKeyboardButton(text='Отмена', callback_data='cancel')
-    # Добавляем кнопку "Отмена" в список кнопок
+    # Добавляем кнопку "Отмена" в последнюю строку
     inline_keyboard.append([cancel_button])
 
     # Возвращаем объект инлайн-клавиатуры
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+
 
 
 # Функция для формирования клавиатуры с кнопками названия которых будут все модификации товара.
