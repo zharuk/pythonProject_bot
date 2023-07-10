@@ -144,7 +144,7 @@ async def create_edit_kb(sku):
     # Создаем кнопку "Изменить цену"
     button_price = InlineKeyboardButton(text='Изменить цену', callback_data=f'{sku}_edit_price')
     # Создаем кнопку "Изменить комплектацию"
-    button_variants = InlineKeyboardButton(text='Изменить остатки комплектации', callback_data=f'{sku}_edit_stock')
+    button_variants = InlineKeyboardButton(text='Изменить остатки', callback_data=f'{sku}_edit_stock')
     # Создаем кнопку "Обновить фото"
     button_photo = InlineKeyboardButton(text='Обновить фото', callback_data=f'{sku}_edit_photo')
     # Создаем кнопку "Удалить товар"

@@ -72,7 +72,7 @@ def format_variants_message(variants: list) -> str:
 # Функция для формирования списка фотографий товара
 # На вход функция принимает список вариантов товара и формирует список фотографий
 def generate_photos(variants: list) -> list:
-    photos = [photo_id['id'] for photo_id in variants]
+    photos = [photo_id['id'] for photo_id in variants[:10]]  # Используем срез [:10] для получения максимум 10 элементов
     media = [InputMediaPhoto(media=photo_id) for photo_id in photos]
     return media
 

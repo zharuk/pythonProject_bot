@@ -15,8 +15,6 @@ class FSMAddProduct(StatesGroup):
     fill_photo = State()  # Состояние ввода загрузки фото
 
 
-# Cоздаем класс, наследуемый от StatesGroup, для группы состояний нашей FSM для события показа товара /show_handlers
-# Создаем класс состояний FSM
 class SellItemStates(StatesGroup):
     quantity = State()
 
@@ -34,3 +32,5 @@ class FSMEditProduct(StatesGroup):
     edit_price = State()
     edit_stock = State()
     edit_photo = State()
+
+

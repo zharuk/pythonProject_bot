@@ -130,9 +130,11 @@ async def process_photo_sent(message: Message, state: FSMContext):
     # Получаем текущий список идентификаторов фото из состояния
     data = await state.get_data()
     photo_ids = data.get("photo_ids", [])
+    print(photo_ids)
     # Получаем информацию о текущем фото и сохраняем его идентификатор в список
     largest_photo = message.photo[-1]
     photo_ids.append({"unique_id": largest_photo.file_unique_id, "id": largest_photo.file_id})
+    print(photo_ids)
     # Сохраняем список идентификаторов фото в состояние
     await state.update_data(photo_ids=photo_ids)
     # Формируем товар и добавляем в БД redis
