@@ -30,11 +30,19 @@ async def process_show_command(message: Message):
     await message.answer(text='Выберите товар или нажмите <b>отмена</b>', reply_markup=kb)
 
 
+# Обработчик срабатывающий на callback_data = 'show'. Функционал такой же как и у команды /show
+@router.callback_query(lambda callback_query: callback_query.data == 'show')
+async def process_show_callback(callback_query: CallbackQuery):
+    kb = await create_sku_kb()
+    await callback_query.message.answer(text='Выберите товар или нажмите <b>отмена</b>', reply_markup=kb)
+    await callback_query.answer()
+
+
 # Обработчик для кнопок с артикулами товаров в которых callback_data = артикулу товара
-@router.callback_query(lambda callback_query: callback_query.data.isdigit())
+@router.callback_query(lambda callback_query: '_main_sku' in callback_query.data)
 async def process_callback_query(callback_query: CallbackQuery):
     # Получаем значение артикула товара из callback_data
-    main_sku = callback_query.data
+    main_sku = callback_query.data.split('_')[0]
     # Получаем значение из Redis по артикулу
     product = r.get(main_sku)
     # Преобразуем значение в словарь json
@@ -149,10 +157,12 @@ async def process_quantity(message: Message, state: FSMContext):
                 break
         # вызываем функцию sell_product
         if sell_product(variant_sku, quantity) is True:
+            # Создаем клавиатуру с возврата к списку товаров и отменой
+            kb = await create_cancel_kb()
             # Пишем сообщение пользователю, что товар продан в количестве quantity штук
             await message.answer(text=f'Товар {name} продан в количестве {quantity} шт.')
-            # Выводим список товаров
-            await message.answer(text='Перейти к списку товаров /show')
+            # Выводим кнопку клавиатуру с кнопками "Вернуться к списку товаров" и "Отмена"
+            await message.answer(text='Посмотреть отчет /report', reply_markup=kb)
             # Переводим в состояние default
             await state.clear()
         else:
@@ -227,10 +237,12 @@ async def process_quantity(message: Message, state: FSMContext):
                 break
         # вызываем функцию return_product
         if return_product(sku_variant, quantity) is True:
+            # Создаем клавиатуру с возврата к списку товаров и отменой
+            kb = await create_cancel_kb()
             # Пишем сообщение пользователю, что товар продан в количестве quantity штук
             await message.answer(text=f'Товар {name} возвращен в количестве {quantity} шт.')
             # Выводим список товаров
-            await message.answer(text='Перейти к списку товаров /show')
+            await message.answer(text='Посмотреть отчет /report', reply_markup=kb)
             # Переводим в состояние default
             await state.clear()
         else:
@@ -255,6 +267,7 @@ async def process_callback_query(callback_query: CallbackQuery):
     kb = await create_edit_kb(main_sku)
     # Отправляем клавиатуру пользователю
     await callback_query.message.answer(text='Выберите что хотите отредактировать 👇', reply_markup=kb)
+    await callback_query.answer()
 
 
 # Обработчик кнопки редактировать наименование товара
@@ -440,6 +453,7 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     await callback_query.message.answer(
         text=f'Вы выбрали цвет для редактирования: <b>{callback_query.data.split("_")[0]}</b>\n'
              f'Введите новый цвет или нажмите <b>отмена</b>', reply_markup=kb)
+    await callback_query.answer()
 
 
 # Обработчик, который обрабатывает введенный цвет товара пользователем.
@@ -503,6 +517,7 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     await callback_query.message.answer(
         text=f'Вы выбрали размер для редактирования: <b>{callback_query.data.split("_")[0]}</b>\n'
              f'Введите новый размер или нажмите <b>отмена</b>', reply_markup=kb)
+    await callback_query.answer()
 
 
 # Обработчик, который обрабатывает введенный размер товара пользователем.
@@ -620,6 +635,7 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     await callback_query.message.answer(text=f'Выберите комплектацию товара, остатки которой хотите изменить или '
                                              f'нажмите <b>отмена</b>',
                                         reply_markup=kb)
+    await callback_query.answer()
 
 
 # Обработчик, который обрабатывает кнопку выбранной комплектации товара пользователем. Выводит сообщение с текущим
@@ -716,6 +732,53 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     await callback_query.answer()
 
 
+# Обработчик кнопки удалить товар в меню редактирования товара. Выводит сообщение с подтверждением удаления товара
+# путем ввода артикула товара и слова "удалить"
+@router.callback_query(lambda callback_query: '_edit_delete' in callback_query.data)
+async def process_callback_query(callback_query: CallbackQuery, state: FSMContext):
+    # Получаем значение артикула товара из callback_data
+    main_sku = callback_query.data.split('_')[0]
+    # Создаем клавиатуру с кнопкой отмена
+    kb = await create_cancel_kb()
+    # Устанавливаем состояние edit_delete
+    await state.set_state(FSMEditProduct.edit_delete)
+    # Передаем в состояние артикул товара
+    await state.update_data(main_sku=main_sku)
+    # Отправляем сообщение пользователю с просьбой ввести артикул товара и слово "удалить"
+    await callback_query.message.answer(text=f'Введите артикул "{main_sku}" товара и слово "удалить" для подтверждения '
+                                             f'удаления, <b>ТОВАР БУДЕТ УДАЛЕН НАВСЕГДА 💀</b>', reply_markup=kb)
+    await callback_query.answer()
+
+
+# Обработчик удаления товара в состоянии edit_delete. Если пользователь ввел артикул товара и слово "удалить", то
+# удаляем товар из Redis и выводим сообщение об удалении товара. Если введен некорректный артикул товара или слово
+# "удалить", то выводим сообщение об ошибке и предлагаем ввести артикул товара и слово "удалить" еще раз.
+@router.message(StateFilter(FSMEditProduct.edit_delete))
+async def process_delete_product(message: Message, state: FSMContext):
+    # Получаем артикул товара из состояния
+    data = await state.get_data()
+    main_sku = data.get("main_sku")
+    # Получаем значение из Redis по артикулу
+    product = r.get(main_sku)
+    product = json.loads(product)
+    # Если артикул товара и слово "удалить" введены корректно, то удаляем товар из Redis, очищаем состояние и
+    # выводим сообщение об удалении товара
+    if product and message.text == f'{main_sku} удалить':
+        # Создаем клавиатуру с кнопкой отмена
+        kb = await create_cancel_kb()
+        # Удаляем товар из Redis
+        r.delete(main_sku)
+        await state.clear()
+        await message.answer(text=f'Товар {main_sku} удален', reply_markup=kb)
+    else:
+        # Создаем клавиатуру с кнопкой отмена
+        kb = await create_cancel_kb()
+        # Если артикул товара и слово "удалить" введены некорректно, то выводим сообщение об ошибке и предлагаем
+        # ввести артикул товара и слово "удалить" еще раз.
+        await message.answer(text=f'Артикул товара {main_sku} или слово "удалить" введены некорректно, попробуйте еще '
+                                  f'раз', reply_markup=kb)
+
+
 # Обработчик, который сохранит загруженные фото, если пользователь не нажмет отмена и загрузит новые фото. Должен быть
 # способ работы с media_group. Сохраняем все фото и выводим их на экран.
 @router.message(StateFilter(FSMEditProduct.edit_photo))
@@ -744,5 +807,3 @@ async def process_photo_sent(message: Message, state: FSMContext):
     await message.answer(text='Фото обновлены 👆🏼')
     # Очищаем состояние
     await state.clear()
-
-

@@ -32,5 +32,9 @@ class FSMEditProduct(StatesGroup):
     edit_price = State()
     edit_stock = State()
     edit_photo = State()
+    edit_delete = State()
 
 
+class FSMAddProductOne(StatesGroup):
+    fill_data = State()
+    fill_photo = State()

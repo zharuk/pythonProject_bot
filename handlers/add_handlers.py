@@ -1,10 +1,9 @@
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
-from FSM.fsm import FSMAddProduct
+from FSM.fsm import FSMAddProduct, FSMAddProductOne
 from aiogram.types import Message
-
 from keyboards.keyboards import create_cancel_kb
 from services.product import Product
 import json
@@ -140,6 +139,74 @@ async def process_photo_sent(message: Message, state: FSMContext):
     # Формируем товар и добавляем в БД redis
     data = await state.get_data()
     product = Product(data['name'], data['description'], data['sku'], data['colors'], data['sizes'], data['price'])
+    product.generate_variants()
+    product.__dict__['photo_ids'] = data['photo_ids']
+    product_json = json.dumps(product.__dict__)
+    r.set(product.sku, product_json)
+    # Завершающее сообщение и очистка FSM
+    await message.answer(text='Спасибо!\n\nТовар создан!')
+    await state.clear()
+
+
+# Хендлер который срабатывает на команду /add_one. Отправляет сообщение с просьбой ввести данные с новой строки:
+# название товара
+# описание товара
+# артикул товара
+# цвета товара
+# размеры товара
+# цена товара
+@router.message(Command(commands='add_one'), StateFilter(default_state))
+async def process_add_command(message: Message, state: FSMContext):
+    # Создаем клавиатуру для отмены
+    kb = await create_cancel_kb()
+    # Отправляем сообщение с просьбой ввести имя товара
+    await message.answer(text='Вы добавляете товар одним стоблцом.\n\n'
+                              '<b>Введите данные в таком формате (каждое с новой строки):</b>\n\n'
+                              '👉 Имя товара\n'
+                              '👉 Описание товара\n'
+                              '👉 Артикул товара\n'
+                              '👉 Цвета товара через пробел\n'
+                              '👉 Размеры товара через пробел\n'
+                              '👉 Цена товара (без валюты)', reply_markup=kb)
+
+    # Устанавливаем состояние ожидания ввода имени
+    await state.set_state(FSMAddProductOne.fill_data)
+
+
+# Этот хэндлер будет срабатывать, если введено корректное имя
+# и переводить в состояние ожидания ввода описания товара
+@router.message(StateFilter(FSMAddProductOne.fill_data))
+async def process_data_send(message: Message, state: FSMContext):
+    print(message.text.split('\n'))
+    # Создаем клавиатуру для отмены
+    kb = await create_cancel_kb()
+    # Cохраняем введенное имя в хранилище по ключу "name"
+    await state.update_data(fill_data=message.text.split('\n'))
+    # Считываем из хранилища data
+    data = await state.get_data()
+    # Благодарим за введенную информацию и просим добавить фото, если оно есть
+    await message.answer(text='Спасибо!\n\nА теперь загрузите фото товара', reply_markup=kb)
+    # Переходим в состояние ожидания ввода фото
+    await state.set_state(FSMAddProductOne.fill_photo)
+
+
+# Этот хэндлер будет срабатывать, когда отправлены фото, а также создавать товар и добавлять его в базу данных.
+@router.message(StateFilter(FSMAddProductOne.fill_photo), F.photo)
+async def process_photo_sent(message: Message, state: FSMContext):
+    # Получаем текущий список идентификаторов фото из состояния
+    data = await state.get_data()
+    photo_ids = data.get("photo_ids", [])
+    print(photo_ids)
+    # Получаем информацию о текущем фото и сохраняем его идентификатор в список
+    largest_photo = message.photo[-1]
+    photo_ids.append({"unique_id": largest_photo.file_unique_id, "id": largest_photo.file_id})
+    print(photo_ids)
+    # Сохраняем список идентификаторов фото в состояние
+    await state.update_data(photo_ids=photo_ids)
+    # Формируем товар и добавляем в БД redis
+    data = await state.get_data()
+    product = Product(data['fill_data'][0], data['fill_data'][1], data['fill_data'][2], data['fill_data'][3],
+                      data['fill_data'][4], data['fill_data'][5])
     product.generate_variants()
     product.__dict__['photo_ids'] = data['photo_ids']
     product_json = json.dumps(product.__dict__)

@@ -21,7 +21,7 @@ async def create_sku_kb():
         # Пропускаем ключ с названием 'reports'
         if key_sku == 'reports':
             continue  # Пропустить добавление кнопки
-        buttons.append(InlineKeyboardButton(text=key_sku, callback_data=key_sku))
+        buttons.append(InlineKeyboardButton(text=key_sku, callback_data=key_sku+'_main_sku'))
 
     # Сортируем кнопки по возрастанию
     buttons.sort(key=lambda x: int(x.text))
@@ -32,13 +32,12 @@ async def create_sku_kb():
     # Создаем список списков кнопок
     inline_keyboard = rows
     # Создаем кнопку "Отмена"
-    cancel_button = InlineKeyboardButton(text='Отмена', callback_data='cancel')
+    cancel_button = InlineKeyboardButton(text='⛔️ Отмена', callback_data='cancel')
     # Добавляем кнопку "Отмена" в последнюю строку
     inline_keyboard.append([cancel_button])
 
     # Возвращаем объект инлайн-клавиатуры
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
-
 
 
 # Функция для формирования клавиатуры с кнопками названия которых будут все модификации товара.
@@ -60,8 +59,10 @@ async def create_variants_kb(variants, for_what=None):
         # Создаем кнопку
         buttons.append([InlineKeyboardButton(text=button_name, callback_data=button_callback_data + for_what)])
 
+    # Добавляем кнопку к списку товаров
+    buttons.append([InlineKeyboardButton(text='↩️ Вернуться к списку товаров', callback_data='show')])
     # Добавляем кнопку "Отмена"
-    buttons.append([InlineKeyboardButton(text='Отмена', callback_data='cancel')])
+    buttons.append([InlineKeyboardButton(text='⛔️ Отмена', callback_data='cancel')])
 
     # Создаем список списков кнопок
     inline_keyboard = buttons
@@ -73,21 +74,23 @@ async def create_variants_kb(variants, for_what=None):
 # Функция создающая клавиатуру с 2 кнопками "Модификации товара" и "Показать фото"
 async def create_options_kb(article):
     # Создаем кнопку "Модификации товара"
-    button_variants = InlineKeyboardButton(text='Модификации и остатки товара',
+    button_variants = InlineKeyboardButton(text='📦 Модификации и остатки товара',
                                            callback_data=str(article) + '_variants')
     # Создаем кнопку "Показать фото"
-    button_photo = InlineKeyboardButton(text='Показать фото', callback_data=str(article) + '_photo')
+    button_photo = InlineKeyboardButton(text='👀 Показать фото', callback_data=str(article) + '_photo')
     # Создаем кнопку "Продать товар"
-    button_sell = InlineKeyboardButton(text='Продать товар', callback_data=str(article) + '_sell_button')
+    button_sell = InlineKeyboardButton(text='💵 Продать товар', callback_data=str(article) + '_sell_button')
     # Создаем кнопку вернуть товар
-    button_return = InlineKeyboardButton(text='Вернуть товар', callback_data=str(article) + '_return_button')
+    button_return = InlineKeyboardButton(text='♻️ Вернуть товар', callback_data=str(article) + '_return_button')
     # Создаем кнопку редактировать товар
-    button_edit = InlineKeyboardButton(text='Редактировать товар', callback_data=str(article) + '_edit_button')
+    button_edit = InlineKeyboardButton(text='✍️ Редактировать товар', callback_data=str(article) + '_edit_button')
+    # Создаем кнопку вернутся к списку товаров
+    button_show = InlineKeyboardButton(text='↩️ Вернуться к списку товаров', callback_data='show')
     # Создаем кнопку отмены и сброса состояния, что бы сработал обработчик '/cancel'.
-    button_cancel = InlineKeyboardButton(text='Отмена', callback_data='cancel')
+    button_cancel = InlineKeyboardButton(text='⛔️ Отмена', callback_data='cancel')
 
     # Создаем список списков кнопок
-    inline_keyboard = [[button_variants], [button_photo], [button_sell], [button_return], [button_edit],
+    inline_keyboard = [[button_variants], [button_photo], [button_sell], [button_return], [button_edit], [button_show],
                        [button_cancel]]
 
     # Возвращаем объект инлайн-клавиатуры
@@ -96,12 +99,14 @@ async def create_options_kb(article):
 
 # Функция создающая клавиатуру с 1 кнопкой "Отмена"
 async def create_cancel_kb():
+    # Создаем кнопку 'возврат к списку товаров'
+    button_show = InlineKeyboardButton(text='↩️ Вернуться к списку товаров', callback_data='show')
     # Создаем кнопку отмены и сброса состояния, что бы сработал обработчик '/cancel'. Кнопка должна писать в чат
     # '/cancel'
-    button_cancel = InlineKeyboardButton(text='Отмена', callback_data='cancel')
+    button_cancel = InlineKeyboardButton(text='⛔️ Отмена', callback_data='cancel')
 
     # Создаем список списков кнопок
-    inline_keyboard = [[button_cancel]]
+    inline_keyboard = [[button_show], [button_cancel]]
 
     # Возвращаем объект инлайн-клавиатуры
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
@@ -122,7 +127,7 @@ async def create_report_kb():
     button_period = InlineKeyboardButton(text='Выбрать период', callback_data='period')
     # Создаем кнопку отмены и сброса состояния, что бы сработал обработчик '/cancel'. Кнопка должна писать в чат
     # '/cancel'
-    button_cancel = InlineKeyboardButton(text='Отмена', callback_data='cancel')
+    button_cancel = InlineKeyboardButton(text='⛔️ Отмена', callback_data='cancel')
 
     # Создаем список списков кнопок
     inline_keyboard = [[button_today, button_week], [button_month, button_year], [button_period], [button_cancel]]
@@ -152,14 +157,16 @@ async def create_edit_kb(sku):
     # Создаем кнопку "Обновить фото"
     button_photo = InlineKeyboardButton(text='Обновить фото', callback_data=f'{sku}_edit_photo')
     # Создаем кнопку "Удалить товар"
-    button_delete = InlineKeyboardButton(text='Удалить товар', callback_data=f'{sku}_edit_delete')
+    button_delete = InlineKeyboardButton(text='💀 Удалить товар', callback_data=f'{sku}_edit_delete')
+    # Создаем кнопку возврата к списку товаров
+    button_show = InlineKeyboardButton(text='↩️ Вернуться к списку товаров', callback_data='show')
     # Создаем кнопку отмены и сброса состояния, что бы сработал обработчик '/cancel'. Кнопка должна писать в чат
     # '/cancel'
-    button_cancel = InlineKeyboardButton(text='Отмена', callback_data='cancel')
+    button_cancel = InlineKeyboardButton(text='⛔️ Отмена', callback_data='cancel')
 
     # Создаем список списков кнопок
     inline_keyboard = [[button_name, button_description], [button_article, button_color], [button_size, button_price],
-                       [button_variants, button_photo], [button_delete], [button_cancel]]
+                       [button_variants, button_photo], [button_delete], [button_show], [button_cancel]]
 
     # Возвращаем объект инлайн-клавиатуры
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
@@ -176,7 +183,7 @@ async def create_edit_color_kb(colors):
 
     # Создаем кнопку отмены и сброса состояния, что бы сработал обработчик '/cancel'. Кнопка должна писать в чат
     # '/cancel'
-    button_cancel = InlineKeyboardButton(text='Отмена', callback_data='cancel')
+    button_cancel = InlineKeyboardButton(text='⛔️ Отмена', callback_data='cancel')
 
     # Создаем список списков кнопок
     inline_keyboard = [buttons, [button_cancel]]
@@ -196,11 +203,10 @@ async def create_edit_size_kb(sizes):
 
     # Создаем кнопку отмены и сброса состояния, что бы сработал обработчик '/cancel'. Кнопка должна писать в чат
     # '/cancel'
-    button_cancel = InlineKeyboardButton(text='Отмена', callback_data='cancel')
+    button_cancel = InlineKeyboardButton(text='⛔️ Отмена', callback_data='cancel')
 
     # Создаем список списков кнопок
     inline_keyboard = [buttons, [button_cancel]]
 
     # Возвращаем объект инлайн-клавиатуры
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
-
