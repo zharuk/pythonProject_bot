@@ -4,6 +4,7 @@ from config_data.config import Config, load_config
 from handlers import add_handlers, show_handlers, cancel_hadlers, start_handlers, reports_handlers, all_handlers
 from keyboards.set_menu import set_main_menu
 import logging
+from aiogram.fsm.storage.redis import RedisStorage, Redis
 
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
@@ -21,9 +22,14 @@ async def main():
     logger.info('Starting bot')
     # Загружаем конфиг в переменную config
     config: Config = load_config()
+    # Создаем подключение к Redis состояний и хранилищу
+    redis: Redis = Redis(host='localhost')
+    # Инициализируем хранилище (создаем экземпляр класса RedisStorage)
+    storage: RedisStorage = RedisStorage(redis=redis)
+
     # Инициализируем бот и диспетчер и сервер
     bot: Bot = Bot(token=config.tg_bot.token, parse_mode='HTML')
-    dp: Dispatcher = Dispatcher()
+    dp: Dispatcher = Dispatcher(storage=storage, bot=bot)
 
     # Настраиваем меню
     await set_main_menu(bot)

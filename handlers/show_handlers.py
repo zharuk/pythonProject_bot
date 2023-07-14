@@ -1,6 +1,6 @@
 import asyncio
 
-from aiogram import Router, F
+from aiogram import Router, F, types
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto
@@ -732,6 +732,35 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     await callback_query.answer()
 
 
+# Обработчик, который сохранит загруженные фото, если пользователь не нажмет отмена и загрузит новые фото. Должен быть
+# способ работы с media_group. Сохраняем все фото и выводим их на экран.
+@router.message(StateFilter(FSMEditProduct.edit_photo))
+async def process_photo_sent(message: Message, state: FSMContext):
+    # Получаем текущий список идентификаторов фото из состояния и если его нет, то создаем пустой список
+    data = await state.get_data()
+    new_photos = data.get("photo_ids", [])
+    # Получаем информацию о текущем фото и сохраняем его идентификатор в список
+    largest_photo = message.photo[-1]
+    new_photos.append({"unique_id": largest_photo.file_unique_id, "id": largest_photo.file_id})
+    # Сохраняем список идентификаторов фото в состояние
+    await state.update_data(photo_ids=new_photos)
+    # Извлекаем артикул товара из состояния
+    data = await state.get_data()
+    main_sku = data.get("main_sku")
+    # Получаем значение из Redis по артикулу
+    product = r.get(main_sku)
+    product = json.loads(product)
+    # Заменяем список фото в товаре на новый
+    product['photo_ids'] = new_photos
+    # Преобразуем значение в словарь json
+    product_dump = json.dumps(product)
+    # Обновляем значение в Redis
+    r.set(main_sku, product_dump)
+    # Отправляем клавиатуру пользователю
+    await message.answer(text='Фото обновлены 👆🏼')
+    # Очищаем состояние
+    await state.clear()
+
 # Обработчик кнопки удалить товар в меню редактирования товара. Выводит сообщение с подтверждением удаления товара
 # путем ввода артикула товара и слова "удалить"
 @router.callback_query(lambda callback_query: '_edit_delete' in callback_query.data)
@@ -779,31 +808,6 @@ async def process_delete_product(message: Message, state: FSMContext):
                                   f'раз', reply_markup=kb)
 
 
-# Обработчик, который сохранит загруженные фото, если пользователь не нажмет отмена и загрузит новые фото. Должен быть
-# способ работы с media_group. Сохраняем все фото и выводим их на экран.
-@router.message(StateFilter(FSMEditProduct.edit_photo))
-async def process_photo_sent(message: Message, state: FSMContext):
-    # Получаем текущий список идентификаторов фото из состояния и если его нет, то создаем пустой список
-    data = await state.get_data()
-    new_photos = data.get("photo_ids", [])
-    # Получаем информацию о текущем фото и сохраняем его идентификатор в список
-    largest_photo = message.photo[-1]
-    new_photos.append({"unique_id": largest_photo.file_unique_id, "id": largest_photo.file_id})
-    # Сохраняем список идентификаторов фото в состояние
-    await state.update_data(photo_ids=new_photos)
-    # Извлекаем артикул товара из состояния
-    data = await state.get_data()
-    main_sku = data.get("main_sku")
-    # Получаем значение из Redis по артикулу
-    product = r.get(main_sku)
-    product = json.loads(product)
-    # Заменяем список фото в товаре на новый
-    product['photo_ids'] = new_photos
-    # Преобразуем значение в словарь json
-    product_dump = json.dumps(product)
-    # Обновляем значение в Redis
-    r.set(main_sku, product_dump)
-    # Отправляем клавиатуру пользователю
-    await message.answer(text='Фото обновлены 👆🏼')
-    # Очищаем состояние
-    await state.clear()
+
+
+

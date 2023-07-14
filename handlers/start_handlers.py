@@ -1,6 +1,5 @@
-from aiogram import Router
+from aiogram import Router, Dispatcher
 from aiogram.filters import Command
-
 
 router: Router = Router()
 
@@ -16,6 +15,3 @@ async def start_handler(message):
                          'Нажмите <b>/report</b> для получения отчета по продажам\n'
                          'Нажмите <b>/cancel</b> для отмены\n\n'
                          'или воспользуйтесь кнопкой "Меню" ↙️ слева внизу экрана')
-
-
-
