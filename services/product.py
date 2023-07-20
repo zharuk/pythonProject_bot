@@ -8,7 +8,8 @@ from aiogram.types import InputMediaPhoto
 # При создании экземпляра класса Product, мы передаем в него все необходимые параметры
 # и он генерирует список вариантов товара
 class Product:
-    def __init__(self, name: str, description: str, sku: str, colors: str, sizes: str, price: float, photo_ids: list) -> None:
+    def __init__(self, name: str, description: str, sku: str, colors: str, sizes: str, price: float,
+                 photo_ids: list) -> None:
         self.name = name
         self.description = description
         self.sku = sku
@@ -61,7 +62,7 @@ def get_product_from_data(main_sku: str, user_data: dict) -> dict or bool:
 
 
 # Функция проверки товара по ключу "products" в Redis
-def check_product_in_redis(user_id: str, main_sku: str) -> bool:
+def check_product_in_redis(user_id: str | int, main_sku: str) -> bool:
     # Получение данных из Redis
     data_user = get_data_from_redis(user_id)
     # Проверка наличия sku в data_user

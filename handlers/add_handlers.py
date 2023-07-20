@@ -6,8 +6,8 @@ from FSM.fsm import FSMAddProduct, FSMAddProductOne
 from aiogram.types import Message, CallbackQuery
 from keyboards.keyboards import create_cancel_kb, cancel_and_done_kb
 from middlewares.check_user import CheckUserMessageMiddleware
-from services.product import Product
-from services.redis_server import create_redis_client, get_data_from_redis, save_data_to_redis, check_product_in_redis
+from services.product import Product, check_product_in_redis
+from services.redis_server import create_redis_client, get_data_from_redis, save_data_to_redis
 
 router: Router = Router()
 router.message.middleware(CheckUserMessageMiddleware())

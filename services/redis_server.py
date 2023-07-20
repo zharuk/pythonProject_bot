@@ -39,7 +39,7 @@ async def create_company(user_id: str, company: str, currency: str):
 
 
 # Функция принимающая id пользователя и возвращающая data из Redis
-def get_data_from_redis(user_id: str) -> dict or bool:
+def get_data_from_redis(user_id: str | int) -> dict or bool:
     # Подключение к базе данных Redis
     r = create_redis_client()
     # Получение данных из Redis
@@ -51,7 +51,7 @@ def get_data_from_redis(user_id: str) -> dict or bool:
 
 
 # Функция сохраняющая data в Redis по id пользователя
-def save_data_to_redis(user_id: str, data: dict) -> None:
+def save_data_to_redis(user_id: int | str, data: dict) -> None:
     # Подключение к базе данных Redis
     r = create_redis_client()
     # Сохранение данных в Redis
