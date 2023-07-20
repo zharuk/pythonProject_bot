@@ -1,17 +1,14 @@
 import datetime
 import json
-from services.redis_server import create_redis_client, check_and_create_structure_reports
-
+from services.redis_server import check_and_create_structure_reports, get_data_from_redis
 from aiogram.types import InputMediaPhoto
-
-r = create_redis_client()
 
 
 # Класс для создания экземпляров товаров
 # При создании экземпляра класса Product, мы передаем в него все необходимые параметры
 # и он генерирует список вариантов товара
 class Product:
-    def __init__(self, name: str, description: str, sku: str, colors: str, sizes: str, price: float, photo_ids: list):
+    def __init__(self, name: str, description: str, sku: str, colors: str, sizes: str, price: float, photo_ids: list) -> None:
         self.name = name
         self.description = description
         self.sku = sku
@@ -20,7 +17,6 @@ class Product:
         self.price = price
         self.variants = self.generate_variants()
         self.photo_ids = photo_ids
-
 
     def generate_variants(self) -> list[dict[str, [str, float, int]]]:
         variants = []
@@ -44,14 +40,36 @@ class Product:
 
 # Функция для формирования основной информации о товаре
 # На вход функция принимает словарь с информацией о товаре и формирует текстовое сообщение
-def format_main_info(json_value: dict):
-    response_text = f"➡ Название: {json_value['name']}\n" \
-                    f"➡ Описание: {json_value['description']}\n" \
-                    f"➡ Артикул: {json_value['sku']}\n" \
-                    f"➡ Цвета: {', '.join(json_value['colors'])}\n" \
-                    f"➡ Размеры: {', '.join(json_value['sizes'])}\n" \
-                    f"➡ Цена: {json_value['price']}\n"
+def format_main_info(product: dict) -> str:
+    response_text = f"➡ Название: {product['name']}\n" \
+                    f"➡ Описание: {product['description']}\n" \
+                    f"➡ Артикул: {product['sku']}\n" \
+                    f"➡ Цвета: {', '.join(product['colors'])}\n" \
+                    f"➡ Размеры: {', '.join(product['sizes'])}\n" \
+                    f"➡ Цена: {product['price']}\n"
     return response_text
+
+
+# Функция получения товара по sku в словаре user_data.
+def get_product_from_data(main_sku: str, user_data: dict) -> dict or bool:
+    # Поиск товара по sku в user_data
+    for product in user_data['products']:
+        d_key = list(product.keys())[0]
+        if d_key == main_sku:
+            return product[main_sku]
+    return False
+
+
+# Функция проверки товара по ключу "products" в Redis
+def check_product_in_redis(user_id: str, main_sku: str) -> bool:
+    # Получение данных из Redis
+    data_user = get_data_from_redis(user_id)
+    # Проверка наличия sku в data_user
+    for product in data_user['products']:
+        d_key = list(product.keys())[0]
+        if d_key == main_sku:
+            return True
+    return False
 
 
 # Функция для формирования сообщения со списком вариантов товара
@@ -213,4 +231,3 @@ def return_product(sku: str, quantity: int):
         r.set('reports', json.dumps(existing_report))
 
     return True
-

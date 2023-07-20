@@ -113,18 +113,18 @@ async def create_variants_kb(variants, for_what=None):
 
 
 # Функция создающая клавиатуру с 2 кнопками "Модификации товара" и "Показать фото"
-async def create_options_kb(article):
+async def create_options_kb(main_sku):
     # Создаем кнопку "Модификации товара"
     button_variants = InlineKeyboardButton(text='📦 Модификации и остатки товара',
-                                           callback_data=str(article) + '_variants')
+                                           callback_data=str(main_sku) + '_variants')
     # Создаем кнопку "Показать фото"
-    button_photo = InlineKeyboardButton(text='👀 Показать фото', callback_data=str(article) + '_photo')
+    button_photo = InlineKeyboardButton(text='👀 Показать фото', callback_data=str(main_sku) + '_photo')
     # Создаем кнопку "Продать товар"
-    button_sell = InlineKeyboardButton(text='💵 Продать товар', callback_data=str(article) + '_sell_button')
+    button_sell = InlineKeyboardButton(text='💵 Продать товар', callback_data=str(main_sku) + '_sell_button')
     # Создаем кнопку вернуть товар
-    button_return = InlineKeyboardButton(text='♻️ Вернуть товар', callback_data=str(article) + '_return_button')
+    button_return = InlineKeyboardButton(text='♻️ Вернуть товар', callback_data=str(main_sku) + '_return_button')
     # Создаем кнопку редактировать товар
-    button_edit = InlineKeyboardButton(text='✍️ Редактировать товар', callback_data=str(article) + '_edit_button')
+    button_edit = InlineKeyboardButton(text='✍️ Редактировать товар', callback_data=str(main_sku) + '_edit_button')
     # Создаем кнопку вернутся к списку товаров
     button_show = InlineKeyboardButton(text='↩️ Вернуться к списку товаров', callback_data='show')
     # Создаем кнопку отмены и сброса состояния, что бы сработал обработчик '/cancel'.

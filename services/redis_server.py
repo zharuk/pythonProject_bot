@@ -7,7 +7,7 @@ import datetime
 
 
 # Создание подключения к базе данных Redis
-def create_redis_client():
+def create_redis_client() -> redis.Redis:
     # Загружаем конфиг в переменную config
     config: Config = load_config()
     # Подключение к серверу Redis
@@ -25,14 +25,9 @@ async def check_user_id_in_redis(user_id):
     else:
         return False
 
-if __name__ == "__main__":
-    # Используйте asyncio.run() для запуска асинхронной функции в основном потоке
-    result = asyncio.run(check_user_id_in_redis('774411051'))
-    print(result)
-
 
 # Функция проверки id пользователя в Redis и если нет - добавление в Redis ключа с id пользователя
-async def create_company(user_id, company, currency):
+async def create_company(user_id: str, company: str, currency: str):
     # Подключение к базе данных Redis
     r = create_redis_client()
     # Проверка наличия ключа с id пользователя в Redis
@@ -44,7 +39,7 @@ async def create_company(user_id, company, currency):
 
 
 # Функция принимающая id пользователя и возвращающая data из Redis
-def get_data_from_redis(user_id):
+def get_data_from_redis(user_id: str) -> dict or bool:
     # Подключение к базе данных Redis
     r = create_redis_client()
     # Получение данных из Redis
@@ -55,29 +50,12 @@ def get_data_from_redis(user_id):
         return False
 
 
-# a = get_data_from_redis('774411051')
-# for i in a['products']:
-#     print(i)
-
-
 # Функция сохраняющая data в Redis по id пользователя
-def save_data_to_redis(user_id, data):
+def save_data_to_redis(user_id: str, data: dict) -> None:
     # Подключение к базе данных Redis
     r = create_redis_client()
     # Сохранение данных в Redis
     r.set(user_id, json.dumps(data))
-
-
-# Функция проверки товара по ключу "products" в Redis
-def check_product_in_redis(user_id, sku):
-    # Получение данных из Redis
-    data_user = get_data_from_redis(user_id)
-    # Проверка наличия sku в data_user
-    for product in data_user['products']:
-        d_key = list(product.keys())[0]
-        if d_key == sku:
-            return True
-    return False
 
 
 # Функция проверка наличия ключа "reports" и далее полную структуру отчетов в Redis

@@ -5,18 +5,19 @@ from aiogram.types import Message, CallbackQuery
 from FSM.fsm import SellItemStates, ReturnItemStates, FSMEditProduct
 from keyboards.keyboards import create_sku_kb, create_options_kb, create_variants_kb, create_cancel_kb, create_edit_kb, \
     create_edit_color_kb, create_edit_size_kb
-from lexicon.lexicon import LEXICON_CURRENCIES
+from middlewares.check_user import CheckUserMessageMiddleware
 from services.edit import edit_name, edit_description, edit_sku, edit_color, edit_size, check_color, check_size, \
     edit_price, check_price, get_stock, check_stock, edit_stock
-from services.product import format_variants_message, generate_photos, format_main_info, return_product
+from services.product import format_variants_message, generate_photos, format_main_info, return_product, \
+    get_product_from_data
 import json
-from services.redis_server import create_redis_client
 from services.product import sell_product
+from services.redis_server import get_data_from_redis
 from services.sell import check_int
 
 router: Router = Router()
-r = create_redis_client()
-currency = LEXICON_CURRENCIES['UAH']
+router.message.middleware(CheckUserMessageMiddleware())
+#r = create_redis_client()
 
 
 # Обработчик команды /show для вывода списка товаров с помощью инлайн-клавиатуры с артикулами товаров
@@ -24,7 +25,7 @@ currency = LEXICON_CURRENCIES['UAH']
 async def process_show_command(message: Message):
     # Получаем id пользователя
     user_id = message.from_user.id
-    # Создаем инлайн-клавиатуру с артикулами товаров
+    # Создаем клавиатуру с артикулами товаров
     kb = await create_sku_kb(user_id)
     # Отправляем сообщение пользователю
     await message.answer(text='Выберите товар или добавьте новый /add', reply_markup=kb)
@@ -33,20 +34,25 @@ async def process_show_command(message: Message):
 # Обработчик срабатывающий на callback_data = 'show'. Функционал такой же как и у команды /show
 @router.callback_query(lambda callback_query: callback_query.data == 'show')
 async def process_show_callback(callback_query: CallbackQuery):
-    kb = await create_sku_kb()
-    await callback_query.message.answer(text='Выберите товар или нажмите <b>отмена</b>', reply_markup=kb)
-    await callback_query.answer()
+    # Получаем id пользователя
+    user_id = callback_query.from_user.id
+    # Создаем клавиатуру с артикулами товаров
+    kb = await create_sku_kb(user_id)
+    # Отправляем сообщение пользователю
+    await callback_query.answer(text='Выберите товар или добавьте новый /add', reply_markup=kb)
 
 
 # Обработчик для кнопок с артикулами товаров в которых callback_data = артикулу товара
 @router.callback_query(lambda callback_query: '_main_sku' in callback_query.data)
 async def process_callback_query(callback_query: CallbackQuery):
+    # получаем id пользователя
+    user_id = callback_query.from_user.id
+    # Получаем все данные пользователя из Redis
+    user_data = get_data_from_redis(user_id)
     # Получаем значение артикула товара из callback_data
     main_sku = callback_query.data.split('_')[0]
-    # Получаем значение из Redis по артикулу
-    product = r.get(main_sku)
-    # Преобразуем значение в словарь json
-    product = json.loads(product)
+    # Ищем товар в словаре пользователя список products = user_data['products']
+    product = get_product_from_data(main_sku, user_data)
     # формируем основную информацию о товаре с помощью функции
     main_info = format_main_info(product)
     # формируем клавиатуру с помощью функции create_kb
