@@ -1,9 +1,7 @@
-import asyncio
-
-from aiogram import Router, F, types
+from aiogram import Router
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto
+from aiogram.types import Message, CallbackQuery
 from FSM.fsm import SellItemStates, ReturnItemStates, FSMEditProduct
 from keyboards.keyboards import create_sku_kb, create_options_kb, create_variants_kb, create_cancel_kb, create_edit_kb, \
     create_edit_color_kb, create_edit_size_kb
@@ -24,10 +22,12 @@ currency = LEXICON_CURRENCIES['UAH']
 # Обработчик команды /show для вывода списка товаров с помощью инлайн-клавиатуры с артикулами товаров
 @router.message(Command(commands='show'))
 async def process_show_command(message: Message):
+    # Получаем id пользователя
+    user_id = message.from_user.id
     # Создаем инлайн-клавиатуру с артикулами товаров
-    kb = await create_sku_kb()
+    kb = await create_sku_kb(user_id)
     # Отправляем сообщение пользователю
-    await message.answer(text='Выберите товар или нажмите <b>отмена</b>', reply_markup=kb)
+    await message.answer(text='Выберите товар или добавьте новый /add', reply_markup=kb)
 
 
 # Обработчик срабатывающий на callback_data = 'show'. Функционал такой же как и у команды /show

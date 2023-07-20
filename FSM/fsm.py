@@ -13,6 +13,13 @@ class FSMAddProduct(StatesGroup):
     fill_sizes = State()  # Состояние ожидания ввода размеров товара
     fill_price = State()  # Состояние ожидания ввода цены товара
     fill_photo = State()  # Состояние ввода загрузки фото
+    finish = State()  # Состояние завершения добавления товара
+
+
+# Класс для создания компании
+class FSMCreateCompany(StatesGroup):
+    name = State()
+    currency = State()
 
 
 class SellItemStates(StatesGroup):
@@ -36,5 +43,5 @@ class FSMEditProduct(StatesGroup):
 
 
 class FSMAddProductOne(StatesGroup):
-    fill_data = State()
-    fill_photo = State()
+    data = State()
+    photo = State()

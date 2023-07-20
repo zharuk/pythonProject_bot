@@ -6,6 +6,8 @@ from keyboards.set_menu import set_main_menu
 import logging
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 
+from middlewares.check_user import CheckUserCallbackMiddleware
+
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,7 @@ async def main():
     await set_main_menu(bot)
 
     # Регистрируем роутеры в диспетчере
+    dp.callback_query.outer_middleware(CheckUserCallbackMiddleware())
     dp.include_router(start_handlers.router)
     dp.include_router(cancel_hadlers.router)
     dp.include_router(add_handlers.router)

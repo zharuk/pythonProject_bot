@@ -11,7 +11,7 @@ r = create_redis_client()
 # При создании экземпляра класса Product, мы передаем в него все необходимые параметры
 # и он генерирует список вариантов товара
 class Product:
-    def __init__(self, name: str, description: str, sku: str, colors: str, sizes: str, price: float):
+    def __init__(self, name: str, description: str, sku: str, colors: str, sizes: str, price: float, photo_ids: list):
         self.name = name
         self.description = description
         self.sku = sku
@@ -19,6 +19,8 @@ class Product:
         self.sizes = sizes.split()
         self.price = price
         self.variants = self.generate_variants()
+        self.photo_ids = photo_ids
+
 
     def generate_variants(self) -> list[dict[str, [str, float, int]]]:
         variants = []
@@ -211,3 +213,4 @@ def return_product(sku: str, quantity: int):
         r.set('reports', json.dumps(existing_report))
 
     return True
+
