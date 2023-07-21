@@ -1,8 +1,9 @@
 from aiogram import Router
 from aiogram.types import Message, CallbackQuery
+from middlewares.check_user import CheckUserMessageMiddleware
 
 router: Router = Router()
-
+router.message.middleware(CheckUserMessageMiddleware())
 
 # Обработчик, отвечает за все остальные команды которые не вошли в другие обработчики по
 # умолчанию отправляет сообщение о том что команда не найдена

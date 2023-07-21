@@ -1,5 +1,3 @@
-import ast
-import asyncio
 import json
 import redis
 from config_data.config import Config, load_config
@@ -49,7 +47,10 @@ def get_data_from_redis(user_id: str | int) -> dict or bool:
     else:
         return False
 
-
+# a = get_data_from_redis('774411051')
+# print(a)
+# for i in a['products']:
+#     print(i)
 # Функция сохраняющая data в Redis по id пользователя
 def save_data_to_redis(user_id: int | str, data: dict) -> None:
     # Подключение к базе данных Redis

@@ -3,9 +3,11 @@ from aiogram.dispatcher import router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery
 from keyboards.keyboards import create_report_kb
+from middlewares.check_user import CheckUserMessageMiddleware
 from services.reports import get_sales_today_report
 
 router: router = router.Router()
+router.message.middleware(CheckUserMessageMiddleware())
 
 
 # Обработчик команды /report

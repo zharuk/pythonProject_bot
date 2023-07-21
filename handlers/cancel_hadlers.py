@@ -2,8 +2,10 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
+from middlewares.check_user import CheckUserMessageMiddleware
 
 router: Router = Router()
+router.message.middleware(CheckUserMessageMiddleware())
 
 
 # Обработчик команды /cancel на сообщение в чат команды /cancel

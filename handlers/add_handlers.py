@@ -165,6 +165,7 @@ async def process_done_button(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.message.reply(text='Товар успешно Создан!')
     # очищаем хранилище
     await state.clear()
+    lst.clear()
 
 
 # Хендлер который срабатывает на команду /add_one. Отправляет сообщение с просьбой ввести данные с новой строки:

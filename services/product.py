@@ -1,7 +1,9 @@
 import datetime
 import json
-from services.redis_server import check_and_create_structure_reports, get_data_from_redis
+from services.redis_server import check_and_create_structure_reports, get_data_from_redis, create_redis_client
 from aiogram.types import InputMediaPhoto
+
+r = create_redis_client()
 
 
 # Класс для создания экземпляров товаров
@@ -41,13 +43,13 @@ class Product:
 
 # Функция для формирования основной информации о товаре
 # На вход функция принимает словарь с информацией о товаре и формирует текстовое сообщение
-def format_main_info(product: dict) -> str:
+def format_main_info(product: dict, currency: str) -> str:
     response_text = f"➡ Название: {product['name']}\n" \
                     f"➡ Описание: {product['description']}\n" \
                     f"➡ Артикул: {product['sku']}\n" \
                     f"➡ Цвета: {', '.join(product['colors'])}\n" \
                     f"➡ Размеры: {', '.join(product['sizes'])}\n" \
-                    f"➡ Цена: {product['price']}\n"
+                    f"➡ Цена: {product['price']} {currency}\n"
     return response_text
 
 
@@ -71,6 +73,35 @@ def check_product_in_redis(user_id: str | int, main_sku: str) -> bool:
         if d_key == main_sku:
             return True
     return False
+
+
+# Функция замены товара по артикулу из словаря user_data, обновляет артикул и удаляет старый артикул
+def remove_product_from_data(old_sku: str, new_sku: str, user_data: dict) -> dict:
+    # Поиск товара по sku в user_data
+    for product in user_data['products']:
+        d_key = list(product.keys())[0]
+        print(d_key)
+        if d_key == old_sku:
+            # Создаем копию товара
+            product_copy = product[old_sku].copy()
+            print(product_copy)
+            # Удаляем товар из user_data по старому sku
+            user_data['products'].remove(product)
+            # Добавляем товар в user_data по новому sku
+            user_data['products'].append({new_sku: product_copy})
+            print(user_data)
+            return user_data
+
+
+# Функция удаления товара по артикулу из словаря user_data
+def delete_product_from_data(sku: str, user_data: dict) -> dict:
+    # Поиск товара по sku в user_data
+    for product in user_data['products']:
+        d_key = list(product.keys())[0]
+        if d_key == sku:
+            # Удаляем товар из user_data по старому sku
+            user_data['products'].remove(product)
+            return user_data
 
 
 # Функция для формирования сообщения со списком вариантов товара
