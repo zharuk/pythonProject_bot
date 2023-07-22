@@ -77,20 +77,20 @@ def get_sales_today_report(user_id: str | int):
         report_return[sku]['total'] += product['total']
 
     # Формируем строку по продажам
-    report_sold_str = f'Продано товаров сегодня {today}:\n\n'
+    report_sold_str = f'<b>🫰 Продано товаров сегодня {today}</b>:\n\n'
     for product in report_sold.values():
         report_sold_str += f"{product['sku']} - {product['quantity']}шт. - Цена {product['price']}{data['currency']} - всего продано на {product['total']}{data['currency']}\n"
     report_sold_str += f'\nВсего продано товаров: {total_quantity}шт. на сумму {total_price}{data["currency"]}'
 
     # Формируем строку по возвратам
-    report_return_str = f'\n\nВозвращено товаров сегодня {today}:\n\n'
+    report_return_str = f'\n\n<b>♻️ Возвращено товаров сегодня {today}</b>:\n\n'
     for product in report_return.values():
         report_return_str += f"{product['sku']} - {product['quantity']}шт. - Цена {product['price']}{data['currency']} - всего возвращено на {product['total']}{data['currency']}\n"
     report_return_str += f'\nВсего возвращено товаров: {total_quantity_return}шт. на сумму {total_price_return}{data["currency"]}'
 
     # Формируем строку "Чистая прибыль"
     report_profit_str = f'\n--------------------------------\n' \
-                        f'\n\nЧистая прибыль: <b>{total_price - total_price_return}{data["currency"]}</b>'
+                        f'\n\n💰 Чистая прибыль: <b>{total_price - total_price_return}{data["currency"]}</b>'
     # Возвращаем отчет по продажам и возвратам
     return report_sold_str + report_return_str + report_profit_str
 
