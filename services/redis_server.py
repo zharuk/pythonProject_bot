@@ -1,4 +1,6 @@
 import json
+from pprint import pprint, pp
+
 import redis
 from config_data.config import Config, load_config
 import datetime
@@ -47,10 +49,10 @@ def get_data_from_redis(user_id: str | int) -> dict or bool:
     else:
         return False
 
+
 # a = get_data_from_redis('774411051')
-# print(a)
-# for i in a['products']:
-#     print(i)
+# pp(a)
+
 # Функция сохраняющая data в Redis по id пользователя
 def save_data_to_redis(user_id: int | str, data: dict) -> None:
     # Подключение к базе данных Redis
@@ -60,39 +62,40 @@ def save_data_to_redis(user_id: int | str, data: dict) -> None:
 
 
 # Функция проверка наличия ключа "reports" и далее полную структуру отчетов в Redis
-def check_and_create_structure_reports():
-    # Подключение к базе данных Redis
-    r = create_redis_client()
-
-    # Проверка наличия ключа "reports"
-    if r.exists('reports'):
-        # Получение значения ключа "reports"
-        reports_data = r.get('reports')
-        reports = json.loads(reports_data)
-    else:
-        # Создание пустой структуры, если ключ "reports" отсутствует
-        reports = {}
-
+def check_and_create_structure_reports(user_id: str | int):
+    # Получаем данные пользователя из Redis
+    data = get_data_from_redis(user_id)
     # Получение сегодняшней даты
     today = datetime.datetime.today().strftime("%d.%m.%Y")
 
-    # Проверка наличия ключа "sold_products" в структуре "reports"
-    if 'sold_products' not in reports:
-        reports['sold_products'] = {}
+    # Проверка наличия ключа "reports" в структуре данных
+    if 'reports' not in data:
+        # Создание пустой структуры, если ключ "reports" отсутствует
+        data['reports'] = {}
 
-    # Проверка наличия ключа сегодняшней даты в структуре "today"
-    if today not in reports['sold_products']:
-        reports['sold_products'][today] = []
+    # Проверка наличия ключа сегодняшней даты в структуре "reports"
+    if today not in data['reports']:
+        data['reports'][today] = {}
 
-    # Проверка наличия ключа "return_products" в структуре "reports"
-    if 'return_products' not in reports:
-        reports['return_products'] = {}
+    # Проверка наличия ключа "sold_products" в структуре "today"
+    if 'sold_products' not in data['reports'][today]:
+        data['reports'][today]['sold_products'] = []
 
-    # Проверка наличия ключа сегодняшней даты в структуре "today"
-    if today not in reports['return_products']:
-        reports['return_products'][today] = []
+    # Проверка наличия ключа "return_products" в структуре "today"
+    if 'return_products' not in data['reports'][today]:
+        data['reports'][today]['return_products'] = []
 
-    # Кодирование и сохранение структуры "reports" в базе данных Redis
-    r.set('reports', json.dumps(reports))
+    # Сохранение данных в Redis
+    save_data_to_redis(user_id, data)
 
     return True
+
+
+# a = get_data_from_redis('774411051')
+# print(check_and_create_structure_reports('774411051'))
+# pp(a)
+# #удаляем ключ reports
+# del a['reports']
+# # сохраняем в Redis
+# save_data_to_redis('774411051', a)
+# pp(a)

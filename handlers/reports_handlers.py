@@ -22,10 +22,12 @@ async def report_handler(message):
 # Обработчик для кнопки "Продажи за сегодня" в которой callback_data = 'today'
 @router.callback_query(lambda callback_query: 'today' in callback_query.data)
 async def process_callback_query(callback_query: CallbackQuery):
+    # Получаем id пользователя
+    user_id = callback_query.from_user.id
     # Получаем значение из Redis по артикулу
-    value = get_sales_today_report()
+    value = get_sales_today_report(user_id)
     # Отправляем значение пользователю
-    await callback_query.message.answer(value)
+    await callback_query.message.answer(text=value)
     await callback_query.answer()
 
 

@@ -1,6 +1,9 @@
 import datetime
 import json
-from services.redis_server import check_and_create_structure_reports, get_data_from_redis, create_redis_client
+from pprint import pp
+
+from services.redis_server import check_and_create_structure_reports, get_data_from_redis, create_redis_client, \
+    save_data_to_redis
 from aiogram.types import InputMediaPhoto
 
 r = create_redis_client()
@@ -130,136 +133,132 @@ def generate_photos(variants: list) -> list:
 
 
 # Функция для добавления товара в проданные
-def sell_product(sku: str, quantity: int):
+def sell_product(user_id: int, variant_sku: str, quantity: int):
     # Обрезаем артикул до основного значения
-    main_sku = sku.split('-')[0]
+    main_sku = variant_sku.split('-')[0]
     required = None
 
-    # Получаем данные из базы данных
-    product_data = r.get(main_sku)
-    if product_data is None:
-        return 'Товар не найден в базе данных!'
+    # Получаем data_user из Redis
+    data_user = get_data_from_redis(user_id)
+    # Получаем нужный товар из data_user
+    product = get_product_from_data(main_sku, data_user)
 
-    # Конвертируем данные из JSON в словарь
-    main_product = json.loads(product_data)
+    # Проверяем наличие товара в базе данных
+    if product is None:
+        return False
 
     # Получаем варианты товара
-    variants = main_product['variants']
+    variants = product['variants']
 
     # Находим нужную комплектацию из всех вариантов
     for variant in variants:
-        if variant['sku'] == sku:
+        if variant['sku'] == variant_sku:
             # Получаем нужную комплектацию товара
             required = variant
 
     # Проверяем наличие достаточного количества товара
     required['stock'] = int(required['stock'])
     if required['stock'] < quantity:
-        return 'Недостаточное количество товара на складе!'
+        return False
     else:
         # Вычитаем проданный товар из остатков
         required['stock'] -= quantity
-
-    # Обновляем остатки товара в базе данных
-    r.set(main_sku, json.dumps(main_product))
+        # Обновляем остатки товара в базе данных
+        save_data_to_redis(user_id, data_user)
 
     # Получаем текущую дату и время
     current_date = datetime.datetime.now().strftime('%d.%m.%Y')
     current_time = datetime.datetime.now().strftime('%H:%M:%S')
 
     # Проверяем структуру reports функцией check_and_create_structure_reports
-    check_and_create_structure_reports()
+    check_and_create_structure_reports(user_id)
 
     # Получаем текущий отчет sold_products из базы данных
-    report_data = r.get('reports')
-    if report_data is not None:
-        # Если отчет уже существует, конвертируем его из JSON в словарь
-        existing_report = json.loads(report_data)
-        if 'sold_products' in existing_report:
-            # Если есть запись sold_products, добавляем проданный товар к существующей записи
-            existing_report['sold_products'][current_date].append({
-                'sku': sku,
-                'quantity': quantity,
-                'price': int(required['price']),
-                'total': int(quantity) * int(required['price']),
-                'time': current_time
-            })
-        else:
-            # Если записи sold_products нет, создаем новую запись
-            existing_report['sold_products'] = {current_date: [{
-                'sku': sku,
-                'quantity': quantity,
-                'price': int(required['price']),
-                'total': int(quantity) * int(required['price']),
-                'time': current_time
-            }]}
-        # Обновляем отчет в базе данных
-        r.set('reports', json.dumps(existing_report))
+    report_data_sold_today = data_user['reports'][current_date]['sold_products']
+
+    report_data_sold_today.append({
+        'name': required['name'],
+        'sku': variant_sku,
+        'color': required['color'],
+        'size': required['size'],
+        'quantity': quantity,
+        'price': int(required['price']),
+        'total': int(quantity) * int(required['price']),
+        'time': current_time
+    })
+
+    # Cохраняем отчет в базе данных
+    save_data_to_redis(user_id, data_user)
 
     return True
 
 
 # Функция для возврата товара и формирования отчета работает по принципу функции sell_product
-def return_product(sku: str, quantity: int):
+def return_product(user_id: int, variant_sku: str, quantity: int):
     # Обрезаем артикул до основного значения
-    main_sku = sku.split('-')[0]
+    main_sku = variant_sku.split('-')[0]
     required = None
 
-    # Получаем данные из базы данных
-    product_data = r.get(main_sku)
-    if product_data is None:
-        return 'Товар не найден в базе данных!'
+    # Получаем data_user из Redis
+    data_user = get_data_from_redis(user_id)
+    # Получаем нужный товар из data_user
+    product = get_product_from_data(main_sku, data_user)
 
-    # Конвертируем данные из JSON в словарь
-    main_product = json.loads(product_data)
+    # Проверяем наличие товара в базе данных
+    if product is None:
+        return False
 
     # Получаем варианты товара
-    variants = main_product['variants']
+    variants = product['variants']
 
     # Находим нужную комплектацию из всех вариантов
     for variant in variants:
-        if variant['sku'] == sku:
+        if variant['sku'] == variant_sku:
             # Получаем нужную комплектацию товара
             required = variant
 
-    # Прибавляем возвращенный товар к остаткам
-    required['stock'] = int(required['stock'])
+    # Добавляем возвращенный товар в остатки
     required['stock'] += quantity
-
     # Обновляем остатки товара в базе данных
-    r.set(main_sku, json.dumps(main_product))
+    save_data_to_redis(user_id, data_user)
 
     # Получаем текущую дату и время
     current_date = datetime.datetime.now().strftime('%d.%m.%Y')
     current_time = datetime.datetime.now().strftime('%H:%M:%S')
 
     # Проверяем структуру reports функцией check_and_create_structure_reports
-    check_and_create_structure_reports()
+    check_and_create_structure_reports(user_id)
 
     # Получаем текущий отчет return_products из базы данных
-    report_data = r.get('reports')
-    if report_data is not None:
-        # Если отчет уже существует, конвертируем его из JSON в словарь
-        existing_report = json.loads(report_data)
-        if 'return_products' in existing_report:
-            # Если есть запись return_products, добавляем проданный товар к существующей записи
-            existing_report['return_products'][current_date].append({
-                'sku': sku,
-                'quantity': quantity,
-                'price': int(required['price']),
-                'total': int(quantity) * int(required['price']),
-                'time': current_time
-            })
-        else:
-            # Если записи return_products нет, создаем новую запись
-            existing_report['return_products'] = {current_date: [{
-                'sku': sku,
-                'quantity': quantity,
-                'price': int(required['price']),
-                'total': int(quantity) * int(required['price']),
-                'time': current_time
-            }]}
-        # Обновляем отчет в базе данных
-        r.set('reports', json.dumps(existing_report))
+    report_data_return_today = data_user['reports'][current_date]['return_products']
+
+    report_data_return_today.append({
+        'name': required['name'],
+        'sku': variant_sku,
+        'color': required['color'],
+        'size': required['size'],
+        'quantity': quantity,
+        'price': int(required['price']),
+        'total': int(quantity) * int(required['price']),
+        'time': current_time
+    })
+
+    # Cохраняем отчет в базе данных
+    save_data_to_redis(user_id, data_user)
 
     return True
+
+
+# Функция проверки строки на целое число в диапазоне от 1 до 100
+def check_int(value):
+    try:
+        # Преобразуем введенное значение в целое число
+        number = int(value)
+        # Проверяем, что число находится в диапазоне от 1 до 100
+        if 1 <= number <= 100:
+            return True
+        else:
+            return False
+    except ValueError:
+        # Если введено не число или оно не является целым числом, вернем False
+        return False

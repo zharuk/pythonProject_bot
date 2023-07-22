@@ -1,7 +1,8 @@
 import datetime
 import json
+from pprint import pp
 
-from services.redis_server import create_redis_client, check_and_create_structure_reports
+from services.redis_server import create_redis_client, check_and_create_structure_reports, get_data_from_redis
 
 # Подключение к базе данных Redis
 r = create_redis_client()
@@ -17,111 +18,82 @@ r = create_redis_client()
 # выводить в одну строку.
 
 
-def get_sales_today_report():
+def get_sales_today_report(user_id: str | int):
     # Проверяем структуру reports функцией check_and_create_structure_reports
-    check_and_create_structure_reports()
-    # Функция для получения отчета по продажам за текущий день. Слаживает все одинаковые товары, их количество и
-    # сумму продаж. Возвращает список словарей.
-    def get_sales_report_by_date(date):
-        # Получаем отчет по продажам за день
-        report_data = r.get('reports')
-        if report_data is not None:
-            # Если отчет уже существует, конвертируем его из JSON в словарь
-            existing_report = json.loads(report_data)
-            if 'sold_products' in existing_report:
-                # Если есть запись sold_products, получаем проданный товар за день
-                if date in existing_report['sold_products']:
-                    current_date_data = existing_report['sold_products'][date]
-        # Проходимся циклом по current_date_data и суммируем количество проданного товара а также общую сумму продаж
-        # для товара с одинаковым артикулом
-        sales_report = []
-        for product in current_date_data:
-            if len(sales_report) == 0:
-                sales_report.append(product)
-            else:
-                is_exist = False
-                for report in sales_report:
-                    if report['sku'] == product['sku']:
-                        report['quantity'] += product['quantity']
-                        report['total'] += product['total']
-                        is_exist = True
-                        break
-                if not is_exist:
-                    sales_report.append(product)
-        return sales_report
+    check_and_create_structure_reports(user_id)
 
-    # Функция для получения отчета по возвратам за текущий день. Слаживает все одинаковые товары, их количество и
-    # сумму продаж. Возвращает список словарей. Работает так же как и функция get_sales_report_by_date()
-    def get_return_report_by_date(date):
-        # Получаем отчет по возвратам за день
-        report_data = r.get('reports')
-        if report_data is not None:
-            # Если отчет уже существует, конвертируем его из JSON в словарь
-            existing_report = json.loads(report_data)
-            if 'return_products' in existing_report:
-                # Если есть запись return_products, получаем возвращенный товар за день
-                if date in existing_report['return_products']:
-                    current_date_data = existing_report['return_products'][date]
-        # Проходимся циклом по current_date_data и суммируем количество возвращенного товара а также общую сумму
-        # продаж для товара с одинаковым артикулом
-        return_report = []
-        for product in current_date_data:
-            if len(return_report) == 0:
-                return_report.append(product)
-            else:
-                is_exist = False
-                for report in return_report:
-                    if report['sku'] == product['sku']:
-                        report['quantity'] += product['quantity']
-                        report['total'] += product['total']
-                        is_exist = True
-                        break
-                if not is_exist:
-                    return_report.append(product)
-        return return_report
+    # Получаем данные пользователя из Redis
+    data = get_data_from_redis(user_id)
+    reports_data = data['reports']
 
-    def get_sales_total_by_date(date):
-        # Получаем сумму продаж за день
-        sales_total = 0
-        sales_report = get_sales_report_by_date(date)
-        for product in sales_report:
-            sales_total += product['total']
-        return sales_total
+    # Получение сегодняшней даты
+    today = datetime.datetime.today().strftime("%d.%m.%Y")
 
-    def get_return_total_by_date(date):
-        # Получаем сумму возвратов за день
-        return_total = 0
-        return_report = get_return_report_by_date(date)
-        for product in return_report:
-            return_total += product['total']
-        return return_total
+    # Получаем список проданных товаров за сегодня
+    sold_products = reports_data[today]['sold_products']
+    # Получаем список возвращенных товаров за сегодня
+    return_products = reports_data[today]['return_products']
 
-    # Получаем текущую дату
-    current_date = datetime.datetime.now().strftime('%d.%m.%Y')
-    # Получаем отчет по продажам за текущий день
-    sales_report = get_sales_report_by_date(current_date)
-    # Получаем отчет по возвратам за текущий день
-    return_report = get_return_report_by_date(current_date)
-    # Получаем сумму продаж за текущий день
-    sales_total = get_sales_total_by_date(current_date)
-    # Получаем сумму возвратов за текущий день
-    return_total = get_return_total_by_date(current_date)
-    # Получаем общую сумму за текущий день
-    total = sales_total - return_total
-    # Подсчет общего количества проданного товара
-    total_for_sale = 0
-    # Подсчет общего количества возвращенного товара
-    total_for_return = 0
-    # Формируем отчет
-    report = f'Отчет за сегодня {current_date}\n\n<b>Продажи:</b>\n\n'
-    for sale in sales_report:
-        report += f"{sale['sku']} - {sale['quantity']}шт. - Цена {sale['price']}грн. - всего {sale['total']}грн.\n"
-        total_for_sale += sale['quantity']
-    report += f'Всего продано {total_for_sale} товаров на сумму {sales_total}грн.\n\n<b>Возвраты:</b>\n\n'
-    for return_product in return_report:
-        report += f"{return_product['sku']} - {return_product['quantity']}шт. - Цена {return_product['price']}грн. - " \
-                  f"всего {return_product['total']}грн.\n"
-        total_for_return += return_product['quantity']
-    report += f'Всего возвращено {total_for_return} товара на сумму {return_total}грн.\n\nИтого касса за день 💰 с ' \
-              f'учетом возвратов: {total}грн.'
-    return report
+    # Формируем словарь по продажам
+    report_sold = {}
+    total_quantity = 0
+    total_price = 0
+
+    for product in sold_products:
+        sku = product['sku']
+        if sku not in report_sold:
+            report_sold[sku] = {
+                'name': product['name'],
+                'sku': sku,
+                'quantity': 0,
+                'price': 0,
+                'total': 0,
+            }
+        total_quantity += product['quantity']
+        total_price += product['total']
+        report_sold[sku]['quantity'] += product['quantity']
+        report_sold[sku]['price'] = product['price']
+        report_sold[sku]['total'] += product['total']
+
+    # Формируем словарь по возвратам
+    report_return = {}
+    total_quantity_return = 0
+    total_price_return = 0
+
+    for product in return_products:
+        sku = product['sku']
+        if sku not in report_return:
+            report_return[sku] = {
+                'name': product['name'],
+                'sku': sku,
+                'quantity': 0,
+                'price': 0,
+                'total': 0,
+            }
+        total_quantity_return += product['quantity']
+        total_price_return += product['total']
+        report_return[sku]['quantity'] += product['quantity']
+        report_return[sku]['price'] = product['price']
+        report_return[sku]['total'] += product['total']
+
+    # Формируем строку по продажам
+    report_sold_str = f'Продано товаров сегодня {today}:\n\n'
+    for product in report_sold.values():
+        report_sold_str += f"{product['sku']} - {product['quantity']}шт. - Цена {product['price']}{data['currency']} - всего продано на {product['total']}{data['currency']}\n"
+    report_sold_str += f'\nВсего продано товаров: {total_quantity}шт. на сумму {total_price}{data["currency"]}'
+
+    # Формируем строку по возвратам
+    report_return_str = f'\n\nВозвращено товаров сегодня {today}:\n\n'
+    for product in report_return.values():
+        report_return_str += f"{product['sku']} - {product['quantity']}шт. - Цена {product['price']}{data['currency']} - всего возвращено на {product['total']}{data['currency']}\n"
+    report_return_str += f'\nВсего возвращено товаров: {total_quantity_return}шт. на сумму {total_price_return}{data["currency"]}'
+
+    # Формируем строку "Чистая прибыль"
+    report_profit_str = f'\n--------------------------------\n' \
+                        f'\n\nЧистая прибыль: <b>{total_price - total_price_return}{data["currency"]}</b>'
+    # Возвращаем отчет по продажам и возвратам
+    return report_sold_str + report_return_str + report_profit_str
+
+
+
+#pp(get_sales_today_report('774411051'))

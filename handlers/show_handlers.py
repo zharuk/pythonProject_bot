@@ -3,17 +3,15 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from FSM.fsm import SellItemStates, ReturnItemStates, FSMEditProduct
-from keyboards.keyboards import create_sku_kb, create_options_kb, create_variants_kb, create_cancel_kb, create_edit_kb, \
+from keyboards.keyboards import create_sku_kb, create_options_kb, create_variants_kb, create_cancel_kb, create_edit_kb,\
     create_edit_color_kb, create_edit_size_kb, cancel_and_done_kb
 from middlewares.check_user import CheckUserMessageMiddleware
 from services.edit import edit_name, edit_description, edit_sku, edit_color, edit_size, check_color, check_size, \
     edit_price, check_price, get_stock, check_stock, edit_stock
 from services.product import format_variants_message, generate_photos, format_main_info, return_product, \
-    get_product_from_data, check_product_in_redis, remove_product_from_data, delete_product_from_data
-import json
+    get_product_from_data, check_product_in_redis, remove_product_from_data, delete_product_from_data, check_int
 from services.product import sell_product
 from services.redis_server import get_data_from_redis, save_data_to_redis
-from services.sell import check_int
 
 router: Router = Router()
 router.message.middleware(CheckUserMessageMiddleware())
@@ -173,13 +171,12 @@ async def process_quantity(message: Message, state: FSMContext):
                 name = i['name']
                 break
         # вызываем функцию sell_product
-        if sell_product(variant_sku, quantity) is True:
+        if sell_product(user_id, variant_sku, quantity) is True:
             # Создаем клавиатуру с возврата к списку товаров и отменой
             kb = await create_cancel_kb()
             # Пишем сообщение пользователю, что товар продан в количестве quantity штук
-            await message.answer(text=f'Товар {name} продан в количестве {quantity} шт.')
-            # Выводим кнопку клавиатуру с кнопками "Вернуться к списку товаров" и "Отмена"
-            await message.answer(text='Посмотреть отчет /report', reply_markup=kb)
+            await message.answer(text=f'Товар {name} продан в количестве {quantity} шт.\n\n'
+                                      f'Посмотреть отчет /report', reply_markup=kb)
             # Переводим в состояние default
             await state.clear()
         else:
@@ -259,7 +256,7 @@ async def process_quantity(message: Message, state: FSMContext):
                 name = i['name']
                 break
         # вызываем функцию return_product
-        if return_product(variant_sku, quantity) is True:
+        if return_product(user_id, variant_sku, quantity) is True:
             # Создаем клавиатуру с возврата к списку товаров и отменой
             kb = await create_cancel_kb()
             # Пишем сообщение пользователю, что товар продан в количестве quantity штук
@@ -866,3 +863,4 @@ async def process_delete_product(message: Message, state: FSMContext):
         # ввести артикул товара и слово "удалить" еще раз.
         await message.answer(text=f'Артикул товара {main_sku} или слово "удалить" введены некорректно, попробуйте еще '
                                   f'раз', reply_markup=kb)
+
