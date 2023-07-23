@@ -19,6 +19,15 @@ async def report_handler(message):
     await message.answer('Выберите отчет', reply_markup=kb)
 
 
+# Обработчик с callback_data='report' работает по принципу обработчика команды /report
+@router.callback_query(lambda callback_query: 'report' in callback_query.data)
+async def report_handler(callback_query: CallbackQuery):
+    # Формируем клавиатуру с выбором отчета
+    kb = await create_report_kb()
+    # Отправляем сообщение пользователю
+    await callback_query.message.answer('Выберите отчет', reply_markup=kb)
+
+
 # Обработчик для кнопки "Продажи за сегодня" в которой callback_data = 'today'
 @router.callback_query(lambda callback_query: 'today' in callback_query.data)
 async def process_callback_query(callback_query: CallbackQuery):

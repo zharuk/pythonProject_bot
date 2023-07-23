@@ -27,7 +27,7 @@ async def check_user_id_in_redis(user_id):
 
 
 # Функция проверки id пользователя в Redis и если нет - добавление в Redis ключа с id пользователя
-async def create_company(user_id: str, company: str, currency: str):
+async def create_company(user_id: str | int, company: str, currency: str):
     # Подключение к базе данных Redis
     r = create_redis_client()
     # Проверка наличия ключа с id пользователя в Redis

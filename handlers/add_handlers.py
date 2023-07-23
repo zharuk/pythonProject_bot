@@ -26,6 +26,18 @@ async def process_add_command(message: Message, state: FSMContext):
     await state.set_state(FSMAddProduct.fill_name)
 
 
+# Копия хэндлера который срабатывает на команду /add , но с callback_data='add' вместо message
+@router.callback_query(lambda callback_query: 'add' == callback_query.data)
+async def process_add_command(callback_query: CallbackQuery, state: FSMContext):
+    # Создаем клавиатуру для отмены
+    kb = await create_cancel_kb()
+    # Отправляем сообщение с просьбой ввести имя товара
+    await callback_query.message.answer(text='Введите имя товара или нажмите отмена', reply_markup=kb)
+    await callback_query.answer()
+    # Устанавливаем состояние ожидания ввода имени
+    await state.set_state(FSMAddProduct.fill_name)
+
+
 # Этот хэндлер будет срабатывать, если введено корректное имя
 # и переводить в состояние ожидания ввода описания товара
 @router.message(StateFilter(FSMAddProduct.fill_name))
@@ -187,6 +199,25 @@ async def process_add_command(message: Message, state: FSMContext):
     await state.set_state(FSMAddProductOne.data)
 
 
+# Копия хэндлера который срабатывает на команду /add_one , но с callback_data='add_one' вместо message
+@router.callback_query(lambda callback_query: 'add_one' in callback_query.data)
+async def process_add_command(callback_query: CallbackQuery, state: FSMContext):
+    # Создаем клавиатуру для отмены
+    kb = await create_cancel_kb()
+    # Отправляем сообщение с просьбой ввести имя товара
+    await callback_query.message.answer(text='Вы добавляете товар одним стоблцом.\n\n'
+                                             '<b>Введите данные в таком формате (каждое с новой строки):</b>\n\n'
+                                             '👉 Имя товара\n'
+                                             '👉 Описание товара\n'
+                                             '👉 Артикул товара\n'
+                                             '👉 Цвета товара через пробел\n'
+                                             '👉 Размеры товара через пробел\n'
+                                             '👉 Цена товара (без валюты)', reply_markup=kb)
+    await callback_query.answer()
+    # Устанавливаем состояние ожидания ввода имени
+    await state.set_state(FSMAddProductOne.data)
+    await callback_query.answer()
+
 # Этот хэндлер будет срабатывать, если все строки введены корректно
 @router.message(StateFilter(FSMAddProductOne.data))
 async def process_data_send(message: Message, state: FSMContext):
@@ -259,4 +290,11 @@ async def process_done_button(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.message.reply(text='Товар успешно Создан!')
     # очищаем хранилище
     await state.clear()
+
+
+
+
+
+
+
 

@@ -16,7 +16,21 @@ async def create_company_kb():
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
 
-# Функция для формирования инлайн-клавиатуры, где кнопки являются ключами из Redis т.е артикулами товаров
+# Функция для формирования клавиатуры основной клавиатуры с кнопками "Список товаров", "Добавить товар",
+# "Добавить товар одной строкой", "Статистика", "Меню"
+async def create_main_kb():
+    # Создаем кнопки "Список товаров", "Добавить товар", "Добавить товар одной строкой", "Статистика"
+    show_button = InlineKeyboardButton(text='📋 Список товаров', callback_data='show')
+    add_button = InlineKeyboardButton(text='➕ Добавить товар', callback_data='add')
+    add_one_button = InlineKeyboardButton(text='➕ Добавить товар одной строкой', callback_data='add_one')
+    report_button = InlineKeyboardButton(text='📊 Статистика', callback_data='report')
+    # Создаем список кнопок
+    inline_keyboard = [show_button], [add_button], [add_one_button], [report_button]
+    # Возвращаем объект инлайн-клавиатуры
+    return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+
+
+# Функция для формирования инлайн-клавиатуры, где кнопки являются артикулы товаров
 async def create_sku_kb(user_id):
     # получаем данные из Redis по id пользователя
     data_user = get_data_from_redis(user_id)
@@ -30,8 +44,10 @@ async def create_sku_kb(user_id):
         buttons.append(InlineKeyboardButton(text=key_sku, callback_data=key_sku + '_main_sku'))
     # Сортируем кнопки по возрастанию
     buttons.sort(key=lambda x: int(x.text))
+    # Создаем кнопку "Вернутся в меню" с callback_data='start'
+    buttons_back = InlineKeyboardButton(text='↩️ Вернуться в меню', callback_data='start')
     # Создаем список кнопок
-    inline_keyboard = [buttons]
+    inline_keyboard = [buttons, [buttons_back]]
     # Возвращаем объект инлайн-клавиатуры
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
@@ -48,37 +64,6 @@ async def cancel_and_done_kb():
     inline_keyboard = [[cancel_button, done_button]]
     # Возвращаем объект инлайн-клавиатуры
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
-
-
-# keys = await asyncio.get_event_loop().run_in_executor(None, r.keys)
-#
-# # Инициализируем список для кнопок
-# buttons = []
-#
-# # Создаем кнопки на основе ключей из Redis
-# for key in keys:
-#     # Преобразуем ключ из байтов в строку
-#     key_sku = key.decode('utf-8')
-#     # Пропускаем ключ с названием 'reports'
-#     if key_sku == 'reports':
-#         continue  # Пропустить добавление кнопки
-#     buttons.append(InlineKeyboardButton(text=key_sku, callback_data=key_sku + '_main_sku'))
-#
-# # Сортируем кнопки по возрастанию
-# buttons.sort(key=lambda x: int(x.text))
-#
-# # Разбиваем кнопки на строки по 8 кнопок в каждой
-# rows = [buttons[i:i + 8] for i in range(0, len(buttons), 8)]
-#
-# # Создаем список списков кнопок
-# inline_keyboard = rows
-# # Создаем кнопку "Отмена"
-# cancel_button = InlineKeyboardButton(text='⛔️ Отмена', callback_data='cancel')
-# # Добавляем кнопку "Отмена" в последнюю строку
-# inline_keyboard.append([cancel_button])
-#
-# # Возвращаем объект инлайн-клавиатуры
-# return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
 
 # Функция для формирования клавиатуры с кнопками названия которых будут все модификации товара.
