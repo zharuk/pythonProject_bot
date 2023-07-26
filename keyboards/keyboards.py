@@ -30,6 +30,19 @@ async def create_main_kb():
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
 
+# Функция для формирования клавиатуры с кнопками "Вернутся в меню" , где callback_data = 'start' а также "вернутся к
+# списку товаров" с callback_data = 'show'
+async def create_back_kb():
+    # Создаем кнопку "Вернутся в меню"
+    back_button = InlineKeyboardButton(text='↩️ Вернуться в меню', callback_data='start')
+    # Создаем кнопку "Вернутся к списку товаров"
+    show_button = InlineKeyboardButton(text='↩️ Вернуться к списку товаров', callback_data='show')
+    # Создаем список кнопок
+    inline_keyboard = [[back_button], [show_button]]
+    # Возвращаем объект инлайн-клавиатуры
+    return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+
+
 # Функция для формирования инлайн-клавиатуры, где кнопки являются артикулы товаров
 async def create_sku_kb(user_id):
     # получаем данные из Redis по id пользователя
@@ -50,9 +63,6 @@ async def create_sku_kb(user_id):
     inline_keyboard = [buttons, [buttons_back]]
     # Возвращаем объект инлайн-клавиатуры
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
-
-
-# print(create_sku_kb('774411051'))
 
 
 # Создаем клавиатуру с 2 кнопками отмена и готово
@@ -185,7 +195,7 @@ async def create_edit_kb(sku):
     # Создаем кнопку "Удалить товар"
     button_delete = InlineKeyboardButton(text='💀 Удалить товар', callback_data=f'{sku}_edit_delete')
     # Создаем кнопку возврата к списку товаров
-    button_show = InlineKeyboardButton(text='↩️ Вернуться к списку товаров', callback_data='show')
+    button_show = InlineKeyboardButton(text='↩️ Вернуться назад', callback_data=f'{sku}_main_sku')
     # Создаем кнопку отмены и сброса состояния, что бы сработал обработчик '/cancel'. Кнопка должна писать в чат
     # '/cancel'
     button_cancel = InlineKeyboardButton(text='⛔️ Отмена', callback_data='cancel')

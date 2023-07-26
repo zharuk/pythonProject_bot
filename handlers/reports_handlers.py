@@ -2,7 +2,7 @@
 from aiogram.dispatcher import router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery
-from keyboards.keyboards import create_report_kb
+from keyboards.keyboards import create_report_kb, create_back_kb
 from middlewares.check_user import CheckUserMessageMiddleware
 from services.reports import get_sales_today_report
 
@@ -35,8 +35,10 @@ async def process_callback_query(callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     # Получаем значение из Redis по артикулу
     value = get_sales_today_report(user_id)
+    # Создаем клавиатуру с 2 кнопками
+    kb = await create_back_kb()
     # Отправляем значение пользователю
-    await callback_query.message.answer(text=value)
+    await callback_query.message.answer(text=value, reply_markup=kb)
     await callback_query.answer()
 
 

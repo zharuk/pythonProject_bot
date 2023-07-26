@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from FSM.fsm import FSMAddProduct, FSMAddProductOne
 from aiogram.types import Message, CallbackQuery
-from keyboards.keyboards import create_cancel_kb, cancel_and_done_kb
+from keyboards.keyboards import create_cancel_kb, cancel_and_done_kb, create_back_kb
 from middlewares.check_user import CheckUserMessageMiddleware
 from services.product import Product, check_product_in_redis
 from services.redis_server import create_redis_client, get_data_from_redis, save_data_to_redis
@@ -173,8 +173,10 @@ async def process_done_button(callback_query: CallbackQuery, state: FSMContext):
     user_data['products'].append(product)
     # записываем данные о пользователе в базу данных
     save_data_to_redis(user_id, user_data)
+    # Создаем клавиатуру с 2 кнопками в меню и к товарам
+    kb = await create_back_kb()
     # Отправляем сообщение о том, что товар успешно добавлен
-    await callback_query.message.reply(text='Товар успешно Создан!')
+    await callback_query.message.reply(text='Товар успешно Создан!', reply_markup=kb)
     # очищаем хранилище
     await state.clear()
     lst.clear()
@@ -217,6 +219,7 @@ async def process_add_command(callback_query: CallbackQuery, state: FSMContext):
     # Устанавливаем состояние ожидания ввода имени
     await state.set_state(FSMAddProductOne.data)
     await callback_query.answer()
+
 
 # Этот хэндлер будет срабатывать, если все строки введены корректно
 @router.message(StateFilter(FSMAddProductOne.data))
@@ -290,11 +293,3 @@ async def process_done_button(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.message.reply(text='Товар успешно Создан!')
     # очищаем хранилище
     await state.clear()
-
-
-
-
-
-
-
-

@@ -61,18 +61,20 @@ async def process_callback_query(callback_query: CallbackQuery):
 
 # Обработчик для кнопки "Остатки и модификации товара" в которой callback_data = '_variants'
 @router.callback_query(lambda callback_query: '_variants' in callback_query.data)
-async def process_callback_query(callback_query: CallbackQuery, state: FSMContext):
+async def process_callback_query(callback_query: CallbackQuery):
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
     user_data = get_data_from_redis(user_id)
+    # Получаем валюту пользователя
+    currency = user_data['currency']
     # Получаем значение артикула товара из callback_data
     main_sku = callback_query.data.split('_')[0]
     # Ищем товар в словаре пользователя список products = user_data['products']
     product = get_product_from_data(main_sku, user_data)
     # вывод комплектаций товара
     products_variants = product['variants']
-    products_variants = format_variants_message(products_variants)
+    products_variants = format_variants_message(products_variants, currency)
     # Создаем клавиатуру с всеми товарами create_sku_kb()
     kb = await create_options_kb(main_sku)
     # Отправляем значение пользователю
@@ -286,7 +288,8 @@ async def process_callback_query(callback_query: CallbackQuery):
     # создаем клавиатуру с кнопками с помощью функции create_edit_kb
     kb = await create_edit_kb(main_sku)
     # Отправляем клавиатуру пользователю
-    await callback_query.message.answer(text='Выберите что хотите отредактировать 👇', reply_markup=kb)
+    await callback_query.message.answer(text=f'Вы редактируете товар {get_product_from_data(main_sku, get_data_from_redis(callback_query.from_user.id))["name"]} арт. {main_sku}\n'
+                                             f'выберите что хотите отредактировать 👇', reply_markup=kb)
     await callback_query.answer()
 
 

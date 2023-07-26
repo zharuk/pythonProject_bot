@@ -109,7 +109,7 @@ def delete_product_from_data(sku: str, user_data: dict) -> dict:
 
 # Функция для формирования сообщения со списком вариантов товара
 # На вход функция принимает список вариантов товара и формирует текстовое сообщение
-def format_variants_message(variants: list) -> str:
+def format_variants_message(variants: list, currency: str) -> str:
     message = "Список вариантов:\n\n"
     for variant in variants:
         color = variant['color']
@@ -119,7 +119,7 @@ def format_variants_message(variants: list) -> str:
         stock = variant['stock']
         message += f"➡️ Комплектация: {color} {size}\n"
         message += f"Артикул: {sku}\n"
-        message += f"Цена: {price} \n"
+        message += f"Цена: {price}{currency} \n"
         message += f"✅ На складе: <b>{stock}</b>\n\n" if int(stock) > 0 else '<b>❌ Нет в наличии</b>\n\n'
     return message
 
