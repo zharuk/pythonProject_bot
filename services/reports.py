@@ -1,29 +1,14 @@
 import datetime
-import json
-from pprint import pp
-
 from services.redis_server import create_redis_client, check_and_create_structure_reports, get_data_from_redis
 
-# Подключение к базе данных Redis
-r = create_redis_client()
 
-
-# Функция get_sales_today_report() для получения отчета по продажам из словаря reports за текущий день. Словарь
-# reports имеет следующую структуру: reports = {'sold_products': {'date': [{'sku': sku, 'quantity': quantity,
-# 'price': price, 'total': total, 'time': time}]}}. Функция формирует f строки вида "{sku(комплектации товара)} -{
-# color} {size} - { quantity}шт. - Цена {price}грн. - всего продано {total}грн.". Если например за день продано 2
-# комплектации товара с артикулом 001-1, то функция должна суммировать их количество и вернуть строку вида "001-1 -
-# 5шт. - Цена 1000 - всего продано 5000". По такому же принципу функция должна сформировать отчет по возвратам
-# товара. Если за день например было продано 2 одинаковых товара в разное время, то функция должна их суммировать и
-# выводить в одну строку.
-
-
-def get_sales_today_report(user_id: str | int):
+# Функция get_sales_today_report() для получения отчета по продажам из словаря reports за текущий день.
+async def get_sales_today_report(user_id: str | int):
     # Проверяем структуру reports функцией check_and_create_structure_reports
-    check_and_create_structure_reports(user_id)
+    await check_and_create_structure_reports(user_id)
 
     # Получаем данные пользователя из Redis
-    data = get_data_from_redis(user_id)
+    data = await get_data_from_redis(user_id)
     reports_data = data['reports']
 
     # Получение сегодняшней даты
@@ -94,6 +79,3 @@ def get_sales_today_report(user_id: str | int):
     # Возвращаем отчет по продажам и возвратам
     return report_sold_str + report_return_str + report_profit_str
 
-
-
-#pp(get_sales_today_report('774411051'))

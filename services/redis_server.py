@@ -1,13 +1,12 @@
 import json
 from pprint import pprint, pp
-
 import redis
 from config_data.config import Config, load_config
 import datetime
 
 
 # Создание подключения к базе данных Redis
-def create_redis_client() -> redis.Redis:
+async def create_redis_client() -> redis.Redis:
     # Загружаем конфиг в переменную config
     config: Config = load_config()
     # Подключение к серверу Redis
@@ -18,7 +17,7 @@ def create_redis_client() -> redis.Redis:
 # Проверка id пользователя в Redis
 async def check_user_id_in_redis(user_id):
     # Подключение к базе данных Redis
-    r = create_redis_client()
+    r = await create_redis_client()
     # Проверка наличия ключа с id пользователя в Redis
     if r.exists(user_id):
         return True
@@ -26,10 +25,32 @@ async def check_user_id_in_redis(user_id):
         return False
 
 
+# Функция изменения названия компании
+async def edit_company_name(user_id: int, new_company_name: str):
+    # Получаем данные пользователя из Redis
+    data = await get_data_from_redis(user_id)
+    # Изменяем название компании
+    data['company'] = new_company_name
+    # Сохраняем данные в Redis
+    await save_data_to_redis(user_id, data)
+    return True
+
+
+# Функция изменения валюты
+async def edit_currency(user_id: int, new_currency: str):
+    # Получаем данные пользователя из Redis
+    data = await get_data_from_redis(user_id)
+    # Изменяем валюту
+    data['currency'] = new_currency
+    # Сохраняем данные в Redis
+    await save_data_to_redis(user_id, data)
+    return True
+
+
 # Функция проверки id пользователя в Redis и если нет - добавление в Redis ключа с id пользователя
 async def create_company(user_id: str | int, company: str, currency: str):
     # Подключение к базе данных Redis
-    r = create_redis_client()
+    r = await create_redis_client()
     # Проверка наличия ключа с id пользователя в Redis
     if not r.exists(user_id):
         # Добавление ключа с id пользователя в Redis а значением будет словарь с ключами "admins" и "users" и
@@ -39,9 +60,9 @@ async def create_company(user_id: str | int, company: str, currency: str):
 
 
 # Функция принимающая id пользователя и возвращающая data из Redis
-def get_data_from_redis(user_id: str | int) -> dict or bool:
+async def get_data_from_redis(user_id: str | int) -> dict or bool:
     # Подключение к базе данных Redis
-    r = create_redis_client()
+    r = await create_redis_client()
     # Получение данных из Redis
     if r.exists(user_id):
         data = r.get(user_id)
@@ -53,18 +74,19 @@ def get_data_from_redis(user_id: str | int) -> dict or bool:
 # a = get_data_from_redis('774411051')
 # pp(a)
 
+
 # Функция сохраняющая data в Redis по id пользователя
-def save_data_to_redis(user_id: int | str, data: dict) -> None:
+async def save_data_to_redis(user_id: int | str, data: dict) -> None:
     # Подключение к базе данных Redis
-    r = create_redis_client()
+    r = await create_redis_client()
     # Сохранение данных в Redis
     r.set(user_id, json.dumps(data))
 
 
 # Функция проверка наличия ключа "reports" и далее полную структуру отчетов в Redis
-def check_and_create_structure_reports(user_id: str | int):
+async def check_and_create_structure_reports(user_id: str | int):
     # Получаем данные пользователя из Redis
-    data = get_data_from_redis(user_id)
+    data = await get_data_from_redis(user_id)
     # Получение сегодняшней даты
     today = datetime.datetime.today().strftime("%d.%m.%Y")
 
@@ -86,16 +108,7 @@ def check_and_create_structure_reports(user_id: str | int):
         data['reports'][today]['return_products'] = []
 
     # Сохранение данных в Redis
-    save_data_to_redis(user_id, data)
+    await save_data_to_redis(user_id, data)
 
     return True
 
-
-# a = get_data_from_redis('774411051')
-# print(check_and_create_structure_reports('774411051'))
-# pp(a)
-# #удаляем ключ reports
-# del a['reports']
-# # сохраняем в Redis
-# save_data_to_redis('774411051', a)
-# pp(a)

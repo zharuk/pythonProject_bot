@@ -6,16 +6,15 @@ from FSM.fsm import FSMAddProduct, FSMAddProductOne
 from aiogram.types import Message, CallbackQuery
 from keyboards.keyboards import create_cancel_kb, cancel_and_done_kb, create_back_kb
 from middlewares.check_user import CheckUserMessageMiddleware
+from services.edit import check_colors, check_sizes, check_price
 from services.product import Product, check_product_in_redis
-from services.redis_server import create_redis_client, get_data_from_redis, save_data_to_redis
+from services.redis_server import get_data_from_redis, save_data_to_redis
 
 router: Router = Router()
 router.message.middleware(CheckUserMessageMiddleware())
-r = create_redis_client()
 
 
 # Этот хэндлер будет срабатывать на команду /add
-# и переводить бота в состояние ожидания ввода имени
 @router.message(Command(commands='add'), StateFilter(default_state))
 async def process_add_command(message: Message, state: FSMContext):
     # Создаем клавиатуру для отмены
@@ -26,7 +25,7 @@ async def process_add_command(message: Message, state: FSMContext):
     await state.set_state(FSMAddProduct.fill_name)
 
 
-# Копия хэндлера который срабатывает на команду /add , но с callback_data='add' вместо message
+# Копия хэндлера который срабатывает на callback_data='add' вместо message
 @router.callback_query(lambda callback_query: 'add' == callback_query.data)
 async def process_add_command(callback_query: CallbackQuery, state: FSMContext):
     # Создаем клавиатуру для отмены
@@ -38,8 +37,7 @@ async def process_add_command(callback_query: CallbackQuery, state: FSMContext):
     await state.set_state(FSMAddProduct.fill_name)
 
 
-# Этот хэндлер будет срабатывать, если введено корректное имя
-# и переводить в состояние ожидания ввода описания товара
+# ввод имени товара > вывод описания товара
 @router.message(StateFilter(FSMAddProduct.fill_name))
 async def process_name_sent(message: Message, state: FSMContext):
     # Создаем клавиатуру для отмены
@@ -51,8 +49,7 @@ async def process_name_sent(message: Message, state: FSMContext):
     await state.set_state(FSMAddProduct.fill_description)
 
 
-# Этот хендлер будет срабатывать, если введено корректное описание товара
-# и переводить в состояние ожидания ввода артикула товара
+# ввод описания товара > вывод артикула товара
 @router.message(StateFilter(FSMAddProduct.fill_description))
 async def process_desc_sent(message: Message, state: FSMContext):
     # Создаем клавиатуру для отмены
@@ -64,8 +61,7 @@ async def process_desc_sent(message: Message, state: FSMContext):
     await state.set_state(FSMAddProduct.fill_sku)
 
 
-# Этот хэндлер будет срабатывать, если введено корректный артикул товара
-# и переводить в состояние ожидания ввода цветов товара
+# ввод артикула товара > вывод цветов товара
 @router.message(StateFilter(FSMAddProduct.fill_sku))
 async def process_sku_sent(message: Message, state: FSMContext):
     # Получаем user_id
@@ -73,7 +69,7 @@ async def process_sku_sent(message: Message, state: FSMContext):
     # Создаем клавиатуру для отмены
     kb = await create_cancel_kb()
     # Проверяем нет ли введенного артикула пользователя в базе данных и если есть, то сообщаем что такой товар уже есть
-    if check_product_in_redis(user_id, message.text):
+    if await check_product_in_redis(user_id, message.text):
         await message.answer(text='Товар с таким артикулом уже есть в базе данных!\n\n'
                                   'Введите другой артикул или для отмены введите /cancel', reply_markup=kb)
         return
@@ -85,12 +81,17 @@ async def process_sku_sent(message: Message, state: FSMContext):
         await state.set_state(FSMAddProduct.fill_colors)
 
 
-# Этот хэндлер будет срабатывать, если введены корректный артикул товара
-# и переводить в состояние ожидания ввода цветов товара
+# ввод цветов товара > вывод размеров товара
 @router.message(StateFilter(FSMAddProduct.fill_colors))
 async def process_colors_sent(message: Message, state: FSMContext):
     # Создаем клавиатуру для отмены
     kb = await create_cancel_kb()
+    # Проверяем список цветов на корректность
+    if not await check_colors(message.text.split()):
+        await message.answer(text='Неверный формат ввода!\n\n'
+                                  '<b>Введите цвета товара через пробел или нажмите "Отмена"</b>\n'
+                                  'Например: черный белый', reply_markup=kb)
+        return
     # Cохраняем введенные цвета в хранилище по ключу "colors"
     await state.update_data(colors=message.text)
     await message.answer(text='Спасибо!\n\nА теперь введите размеры товаров через пробел', reply_markup=kb)
@@ -98,25 +99,17 @@ async def process_colors_sent(message: Message, state: FSMContext):
     await state.set_state(FSMAddProduct.fill_sizes)
 
 
-# Этот хэндлер будет срабатывать, если введены корректный артикул товара
-# и переводить в состояние ожидания ввода цветов товара
-@router.message(StateFilter(FSMAddProduct.fill_colors))
-async def process_colors_sent(message: Message, state: FSMContext):
-    # Создаем клавиатуру для отмены
-    kb = await create_cancel_kb()
-    # Cохраняем введенные цвета в хранилище по ключу "colors"
-    await state.update_data(colors=message.text)
-    await message.answer(text='Спасибо!\n\nА теперь введите размеры товаров через пробел', reply_markup=kb)
-    # Устанавливаем состояние ожидания ввода размеров товара
-    await state.set_state(FSMAddProduct.fill_sizes)
-
-
-# Этот хэндлер будет срабатывать, если введены корректно цвета товаров
-# и переводить в состояние ожидания ввода цены товара
+# ввод размеров товара > вывод цены товара
 @router.message(StateFilter(FSMAddProduct.fill_sizes))
 async def process_sizes_sent(message: Message, state: FSMContext):
     # Создаем клавиатуру для отмены
     kb = await create_cancel_kb()
+    # Проверяем список размеров на корректность
+    if not await check_sizes(message.text.split()):
+        await message.answer(text='Неверный формат ввода!\n\n'
+                                  '<b>Введите размеры товара через пробел или нажмите "Отмена"</b>\n'
+                                  'Например: S M L или 42 44 46', reply_markup=kb)
+        return
     # Cохраняем введенные размеры в хранилище по ключу "sizes"
     await state.update_data(sizes=message.text)
     await message.answer(text='Спасибо!\n\nА теперь введите цену товара', reply_markup=kb)
@@ -124,12 +117,17 @@ async def process_sizes_sent(message: Message, state: FSMContext):
     await state.set_state(FSMAddProduct.fill_price)
 
 
-# Этот хэндлер будет срабатывать, если введен корректно артикул товара
-# и переходить к загрузке фото
+# ввод цены товара > вывод фото товара
 @router.message(StateFilter(FSMAddProduct.fill_price))
 async def process_price_sent(message: Message, state: FSMContext):
     # Создаем клавиатуру с 2 кнопками для отмены и готово
     kb = await cancel_and_done_kb()
+    # Проверяем введенную цену на корректность
+    if not await check_price(message.text):
+        await message.answer(text='Неверный формат ввода!\n\n'
+                                  '<b>Введите цену товара (без валюты) или нажмите "Отмена"</b>\n'
+                                  'Например: 1000', reply_markup=kb)
+        return
     # Cохраняем введенную цену в хранилище по ключу "price"
     await state.update_data(price=message.text)
     await message.answer(text='Спасибо!\n\nА теперь загрузите фото товара\n\n<b>После загрузки всех фото нажмите '
@@ -148,7 +146,7 @@ async def process_photo_sent(message: Message):
     lst.append({"unique_id": largest_photo.file_unique_id, "id": largest_photo.file_id})
 
 
-# Хендлер который окончательно формирует товар и сохраняет его в базу данных
+# Обработчик который окончательно формирует товар и сохраняет его в базу данных и очищает хранилище FSM
 @router.callback_query(StateFilter(FSMAddProduct.fill_photo), lambda callback_query: 'done' in callback_query.data)
 async def process_done_button(callback_query: CallbackQuery, state: FSMContext):
     # Получаем все данные из хранилища
@@ -168,11 +166,11 @@ async def process_done_button(callback_query: CallbackQuery, state: FSMContext):
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получает данные о пользователе из базы данных по id
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Добавляем товар в базу данных
     user_data['products'].append(product)
     # записываем данные о пользователе в базу данных
-    save_data_to_redis(user_id, user_data)
+    await save_data_to_redis(user_id, user_data)
     # Создаем клавиатуру с 2 кнопками в меню и к товарам
     kb = await create_back_kb()
     # Отправляем сообщение о том, что товар успешно добавлен
@@ -228,33 +226,49 @@ async def process_data_send(message: Message, state: FSMContext):
     user_id = message.from_user.id
     # Создаем клавиатуру для отмены и готово
     kb = await cancel_and_done_kb()
-    # Создаем клавитуру для отмены
+    # Создаем клавиатуру для отмены
     kb2 = await create_cancel_kb()
     # Cохраняем введенное имя в хранилище по ключу "name"
     data = message.text.split('\n')
-    if len(data) == 6:
-        if check_product_in_redis(user_id, data[2]):
-            await message.answer(text='Товар с таким артикулом уже есть в базе данных!\n\n'
-                                      'Заполните товар заново или для отмены нажмите "Отмена"', reply_markup=kb2)
-        else:
-            await state.update_data(name=data[0], description=data[1], sku=data[2], colors=data[3], sizes=data[4],
-                                    price=data[5])
-            # Благодарим за введенную информацию и просим добавить фото, если оно есть
-            await message.answer(text='Спасибо!\n\nА теперь загрузите фото товара\n\n<b>После загрузки всех фото '
-                                      'нажмите'
-                                      'кнопку "Готово👇"</b>', reply_markup=kb)
-            # Переходим в состояние ожидания ввода фото
-            await state.set_state(FSMAddProductOne.photo)
-    else:
+    # Сортируем данные по переменным
+    name = data[0]
+    description = data[1]
+    sku = data[2]
+    colors = data[3]
+    sizes = data[4]
+    price = data[5]
+    # Проверяем нет ли введенного артикула пользователя в базе данных и если есть, то сообщаем что такой товар уже есть
+    if await check_product_in_redis(user_id, sku):
+        await message.answer(text='Товар с таким артикулом уже есть в базе данных!\n\n'
+                                  'Введите другой артикул или для отмены введите /cancel', reply_markup=kb2)
+        return
+    # Проверяем список цветов на корректность
+    if not await check_colors(colors.split()):
         await message.answer(text='Неверный формат ввода!\n\n'
-                                  '<b>Введите данные в таком формате (каждое с новой строки):</b>\n\n'
-                                  '👉 Имя товара\n'
-                                  '👉 Описание товара\n'
-                                  '👉 Артикул товара\n'
-                                  '👉 Цвета товара через пробел\n'
-                                  '👉 Размеры товара через пробел\n'
-                                  '👉 Цена товара (без валюты)\n\n'
-                                  '<b>или нажмите "Отмена"</b>', reply_markup=kb2)
+                                  '<b>Введите цвета товара через пробел или нажмите "Отмена"</b>\n'
+                                  'Например: черный белый', reply_markup=kb2)
+        return
+    # Проверяем список размеров на корректность
+    if not await check_sizes(sizes.split()):
+        await message.answer(text='Неверный формат ввода!\n\n'
+                                  '<b>Введите размеры товара через пробел или нажмите "Отмена"</b>\n'
+                                  'Например: S M L или 42 44 46', reply_markup=kb2)
+        return
+    # Проверяем введенную цену на корректность
+    if not await check_price(price):
+        await message.answer(text='Неверный формат ввода!\n\n'
+                                  '<b>Введите цену товара (без валюты) или нажмите "Отмена"</b>\n'
+                                  'Например: 1000', reply_markup=kb2)
+        return
+
+    # Записываем данные в хранилище
+    await state.update_data(name=name, description=description, sku=sku, colors=colors, sizes=sizes, price=price)
+
+    # Отправляем пользователю сообщение с просьбой загрузить фото товара
+    await message.answer(text='Спасибо!\n\nА теперь загрузите фото товара\n\n<b>После загрузки всех фото нажмите '
+                              'кнопку "Готово👇"</b>', reply_markup=kb)
+    # Устанавливаем состояние ожидания ввода загрузки фото товаров товара
+    await state.set_state(FSMAddProductOne.photo)
 
 
 # Этот хэндлер будет принимать фото и формировать список идентификаторов фото
@@ -284,12 +298,14 @@ async def process_done_button(callback_query: CallbackQuery, state: FSMContext):
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получает данные о пользователе из базы данных по id
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Добавляем товар в базу данных
     user_data['products'].append(product)
     # записываем данные о пользователе в базу данных
-    save_data_to_redis(user_id, user_data)
+    await save_data_to_redis(user_id, user_data)
+    # Создаем клавиатуру с 2 кнопками в меню и к товарам
+    kb = await create_back_kb()
     # Отправляем сообщение о том, что товар успешно добавлен
-    await callback_query.message.reply(text='Товар успешно Создан!')
+    await callback_query.message.reply(text='Товар успешно Создан!', reply_markup=kb)
     # очищаем хранилище
     await state.clear()

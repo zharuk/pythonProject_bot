@@ -22,6 +22,12 @@ class FSMCreateCompany(StatesGroup):
     currency = State()
 
 
+# Класс для редактирования настроек компании
+class FSMEditCompany(StatesGroup):
+    name = State()
+    currency = State()
+
+
 class SellItemStates(StatesGroup):
     quantity = State()
 

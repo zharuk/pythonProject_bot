@@ -1,3 +1,5 @@
+from pprint import pp
+
 from aiogram import Router, F
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -25,7 +27,8 @@ async def process_show_command(message: Message):
     # Создаем клавиатуру с артикулами товаров
     kb = await create_sku_kb(user_id)
     # Отправляем сообщение пользователю
-    await message.answer(text='Выберите товар или добавьте новый /add', reply_markup=kb)
+    await message.answer(text='Выберите товар или добавьте новый', reply_markup=kb)
+    a = await get_data_from_redis(user_id)
 
 
 # Обработчик срабатывающий на callback_data = 'show'. Функционал такой же как и у команды /show
@@ -36,7 +39,7 @@ async def process_show_callback(callback_query: CallbackQuery):
     # Создаем клавиатуру с артикулами товаров
     kb = await create_sku_kb(user_id)
     # Отправляем сообщение пользователю
-    await callback_query.message.answer(text='Выберите товар или добавьте новый /add', reply_markup=kb)
+    await callback_query.message.answer(text='Выберите товар или добавьте новый', reply_markup=kb)
 
 
 # Обработчик для кнопок с артикулами товаров в которых callback_data = артикулу товара
@@ -45,13 +48,13 @@ async def process_callback_query(callback_query: CallbackQuery):
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение артикула товара из callback_data
     main_sku = callback_query.data.split('_')[0]
     # Ищем товар в словаре пользователя список products = user_data['products']
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # формируем основную информацию о товаре с помощью функции
-    main_info = format_main_info(product, user_data['currency'])
+    main_info = await format_main_info(product, user_data['currency'])
     # формируем клавиатуру с помощью функции create_kb
     kb = await create_options_kb(main_sku)
     # Отправляем значение пользователю
@@ -65,21 +68,23 @@ async def process_callback_query(callback_query: CallbackQuery):
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем валюту пользователя
     currency = user_data['currency']
     # Получаем значение артикула товара из callback_data
     main_sku = callback_query.data.split('_')[0]
     # Ищем товар в словаре пользователя список products = user_data['products']
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
+    # имя продукта
+    name = product['name']
     # вывод комплектаций товара
     products_variants = product['variants']
-    products_variants = format_variants_message(products_variants, currency)
+    products_variants = await format_variants_message(products_variants, currency)
     # Создаем клавиатуру с всеми товарами create_sku_kb()
     kb = await create_options_kb(main_sku)
     # Отправляем значение пользователю
     await callback_query.message.answer(products_variants)
-    await callback_query.message.answer(text='Выберите действие 👇', reply_markup=kb)
+    await callback_query.message.answer(text=f'Выберите действие с товаром {name} <b>арт.{main_sku}</b>', reply_markup=kb)
     await callback_query.answer()
 
 
@@ -89,20 +94,22 @@ async def process_callback_query(callback_query: CallbackQuery):
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение артикула товара из callback_data
     main_sku = callback_query.data.split('_')[0]
     # Ищем товар в словаре пользователя список products = user_data['products']
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
+    # Получаем имя товара
+    name = product['name']
     # Создаем клавиатуру с всеми товарами create_sku_kb()
     kb = await create_options_kb(main_sku)
     # Создаем список фотографий
     if len(product['photo_ids']) > 0:
         photo_ids = product['photo_ids']
         # Отправляем все фотографии одним сообщением
-        await callback_query.message.answer_media_group(generate_photos(photo_ids))
+        await callback_query.message.answer_media_group(await generate_photos(photo_ids))
         # Отправляем клавиатуру пользователю
-        await callback_query.message.answer(text='Выберите действие с товаром👇', reply_markup=kb)
+        await callback_query.message.answer(text=f'Выберите действие с товаром {name} <b>арт.{main_sku}</b>', reply_markup=kb)
     else:
         await callback_query.message.answer('Фото нет')
     await callback_query.answer()
@@ -115,11 +122,11 @@ async def process_callback_query(callback_query: CallbackQuery):
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение артикула товара из callback_data
     main_sku = callback_query.data.split('_')[0]
     # Ищем товар в словаре пользователя список products = user_data['products']
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Получаем значение variants из json_value
     product_variant = product['variants']
     # Создаем клавиатуру с вариантами товара
@@ -150,7 +157,7 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
 @router.message(StateFilter(SellItemStates.quantity))
 async def process_quantity(message: Message, state: FSMContext):
     # Проверяем является ли введенное значение числом от 1 до 100
-    if check_int(message.text):
+    if await check_int(message.text):
         # Получаем значение введенное пользователем
         quantity = int(message.text)
         # Получаем значение article_variant из FSM
@@ -159,11 +166,11 @@ async def process_quantity(message: Message, state: FSMContext):
         # получаем id пользователя
         user_id = message.from_user.id
         # Получаем все данные пользователя из Redis
-        user_data = get_data_from_redis(user_id)
+        user_data = await get_data_from_redis(user_id)
         # Получаем значение артикула товара из callback_data
         main_sku = variant_sku.split('-')[0]
         # Ищем товар в словаре пользователя список products = user_data['products']
-        product = get_product_from_data(main_sku, user_data)
+        product = await get_product_from_data(main_sku, user_data)
         # вывод комплектаций товара
         product_variants = product['variants']
         # Получаем название товара
@@ -173,12 +180,11 @@ async def process_quantity(message: Message, state: FSMContext):
                 name = i['name']
                 break
         # вызываем функцию sell_product
-        if sell_product(user_id, variant_sku, quantity) is True:
+        if await sell_product(user_id, variant_sku, quantity) is True:
             # Создаем клавиатуру с возврата к списку товаров и отменой
-            kb = await create_cancel_kb()
+            kb = await create_options_kb(main_sku)
             # Пишем сообщение пользователю, что товар продан в количестве quantity штук
-            await message.answer(text=f'Товар {name} продан в количестве {quantity} шт.\n\n'
-                                      f'Посмотреть отчет /report', reply_markup=kb)
+            await message.answer(text=f'Товар {name} продан в количестве {quantity} шт.', reply_markup=kb)
             # Переводим в состояние default
             await state.clear()
         else:
@@ -203,9 +209,9 @@ async def process_callback_query(callback_query: CallbackQuery):
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Получаем значение variants из json_value
     product_variants = product['variants']
     # Создаем клавиатуру с вариантами товара
@@ -235,7 +241,7 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
 # Обработчик, который обрабатывает введенное число пользователем для возврата товара
 @router.message(StateFilter(ReturnItemStates.quantity))
 async def process_quantity(message: Message, state: FSMContext):
-    if check_int(message.text):
+    if await check_int(message.text):
         # Получаем значение введенное пользователем
         quantity = int(message.text)
         # Получаем значение article_variant из FSM
@@ -244,11 +250,11 @@ async def process_quantity(message: Message, state: FSMContext):
         # получаем id пользователя
         user_id = message.from_user.id
         # Получаем все данные пользователя из Redis
-        user_data = get_data_from_redis(user_id)
+        user_data = await get_data_from_redis(user_id)
         # Получаем значение артикула товара из callback_data
         main_sku = variant_sku.split('-')[0]
         # Ищем товар в словаре пользователя список products = user_data['products']
-        product = get_product_from_data(main_sku, user_data)
+        product = await get_product_from_data(main_sku, user_data)
         # вывод комплектаций товара
         product_variants = product['variants']
         # Получаем название товара
@@ -258,13 +264,11 @@ async def process_quantity(message: Message, state: FSMContext):
                 name = i['name']
                 break
         # вызываем функцию return_product
-        if return_product(user_id, variant_sku, quantity) is True:
+        if await return_product(user_id, variant_sku, quantity) is True:
             # Создаем клавиатуру с возврата к списку товаров и отменой
             kb = await create_cancel_kb()
             # Пишем сообщение пользователю, что товар продан в количестве quantity штук
-            await message.answer(text=f'Товар {name} возвращен в количестве {quantity} шт.')
-            # Выводим список товаров
-            await message.answer(text='Посмотреть отчет /report', reply_markup=kb)
+            await message.answer(text=f'Товар {name} возвращен в количестве {quantity} шт.', reply_markup=kb)
             # Переводим в состояние default
             await state.clear()
         else:
@@ -287,8 +291,12 @@ async def process_callback_query(callback_query: CallbackQuery):
     main_sku = callback_query.data.split('_')[0]
     # создаем клавиатуру с кнопками с помощью функции create_edit_kb
     kb = await create_edit_kb(main_sku)
+    # Получаем product по артикулу товара
+    product = await get_product_from_data(main_sku, await get_data_from_redis(callback_query.from_user.id))
+    # Получаем имя товара
+    name = product['name']
     # Отправляем клавиатуру пользователю
-    await callback_query.message.answer(text=f'Вы редактируете товар {get_product_from_data(main_sku, get_data_from_redis(callback_query.from_user.id))["name"]} арт. {main_sku}\n'
+    await callback_query.message.answer(text=f'Вы редактируете товар {name} арт. {main_sku}\n'
                                              f'выберите что хотите отредактировать 👇', reply_markup=kb)
     await callback_query.answer()
 
@@ -301,9 +309,9 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Создаем клавиатуру с кнопкой "Отмена"
     kb = await create_cancel_kb()
     # Устанавливаем FSMEditProduct edit_name
@@ -327,13 +335,13 @@ async def process_name(message: Message, state: FSMContext):
     # получаем id пользователя
     user_id = message.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Применяем функцию edit_name
-    edit_name(product, new_name)
+    await edit_name(product, new_name)
     # Записываем новое название товара в Redis
-    save_data_to_redis(user_id, user_data)
+    await save_data_to_redis(user_id, user_data)
     # Создаем клавиатуру с действия по редактированию товара
     kb = await create_edit_kb(main_sku)
     # Пишем сообщение пользователю, что товар отредактирован и теперь его название name
@@ -350,9 +358,9 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Создаем клавиатуру с кнопкой "Отмена"
     kb = await create_cancel_kb()
     # Устанавливаем FSMEditProduct edit_description
@@ -376,13 +384,13 @@ async def process_description(message: Message, state: FSMContext):
     # получаем id пользователя
     user_id = message.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Применяем функцию edit_description
-    edit_description(product, description)
+    await edit_description(product, description)
     # Перезаписываем значение в Redis
-    save_data_to_redis(user_id, user_data)
+    await save_data_to_redis(user_id, user_data)
     # Создаем клавиатуру с действия по редактированию товара
     kb = await create_edit_kb(main_sku)
     # Пишем сообщение пользователю, что товар отредактирован и теперь его описание description
@@ -399,9 +407,9 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Создаем клавиатуру с кнопкой "Отмена"
     kb = await create_cancel_kb()
     # Устанавливаем FSMEditProduct edit_article
@@ -422,7 +430,7 @@ async def process_sku(message: Message, state: FSMContext):
     # Получаем значение введенное пользователем
     new_sku = message.text
     # Проверяем введенный артикул на уникальность в Redis
-    if check_product_in_redis(user_id, new_sku):
+    if await check_product_in_redis(user_id, new_sku):
         await message.answer(text=f'Товар с артикулом <b>{new_sku}</b> уже существует. Введите другой артикул или '
                                   f'нажмите'
                                   f'<b>отмена</b>')
@@ -432,15 +440,15 @@ async def process_sku(message: Message, state: FSMContext):
         data = await state.get_data()
         main_sku = data.get("main_sku")
         # Получаем все данные пользователя из Redis
-        user_data = get_data_from_redis(user_id)
+        user_data = await get_data_from_redis(user_id)
         # Получаем значение product по артикулу товара
-        product = get_product_from_data(main_sku, user_data)
+        product = await get_product_from_data(main_sku, user_data)
         # Применяем функцию edit_sku
-        edit_sku(product, new_sku)
+        await edit_sku(product, new_sku)
         # Удаляем старый артикул
-        new_product = remove_product_from_data(main_sku, new_sku, user_data)
+        new_product = await remove_product_from_data(main_sku, new_sku, user_data)
         # Перезаписываем значение в Redis
-        save_data_to_redis(user_id, new_product)
+        await save_data_to_redis(user_id, new_product)
         # Создаем клавиатуру с действиями по редактированию товара
         kb = await create_edit_kb(new_sku)
         # Пишем сообщение пользователю, что товар отредактирован и теперь его артикул sku
@@ -457,9 +465,9 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Получаем список цветов товара
     colors = product['colors']
     # Создаем клавиатуру с кнопками цветов товара и кнопкой "Отмена"
@@ -492,7 +500,7 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
 @router.message(StateFilter(FSMEditProduct.edit_color))
 async def process_color(message: Message, state: FSMContext):
     # Проверяем цвет на валидность
-    if check_color(message.text.lower()):
+    if await check_color(message.text.lower()):
         # Сохраняем введенный пользователем цвет в FSM
         await state.update_data(desired_color=message.text.lower())
         # Получаем значение из FSM выбранного цвета для замены и желаемого цвета
@@ -504,13 +512,13 @@ async def process_color(message: Message, state: FSMContext):
         # получаем id пользователя
         user_id = message.from_user.id
         # Получаем все данные пользователя из Redis
-        user_data = get_data_from_redis(user_id)
+        user_data = await get_data_from_redis(user_id)
         # Получаем значение product по артикулу товара
-        product = get_product_from_data(main_sku, user_data)
+        product = await get_product_from_data(main_sku, user_data)
         # Применяем функцию edit_color
-        new_color = edit_color(product, selected_color, desired_color)
+        new_color = await edit_color(product, selected_color, desired_color)
         # Сохраняем измененные данные в Redis
-        save_data_to_redis(user_id, user_data)
+        await save_data_to_redis(user_id, user_data)
         # Очищаем состояние
         await state.clear()
         # Создаем клавиатуру с действиями по редактированию товара
@@ -533,9 +541,9 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     sizes = product['sizes']
     kb = await create_edit_size_kb(sizes)
     await state.set_state(FSMEditProduct.edit_size)
@@ -559,7 +567,7 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
 # Обработчик, который обрабатывает введенный размер товара пользователем.
 @router.message(StateFilter(FSMEditProduct.edit_size))
 async def process_size(message: Message, state: FSMContext):
-    if check_size(message.text.lower()):
+    if await check_size(message.text.lower()):
         # Сохраняем введенный пользователем размер в FSM
         await state.update_data(desired_size=message.text.lower())
         # Получаем значение из FSM выбранного размера для замены и желаемого размера
@@ -572,13 +580,13 @@ async def process_size(message: Message, state: FSMContext):
         # получаем id пользователя
         user_id = message.from_user.id
         # Получаем все данные пользователя из Redis
-        user_data = get_data_from_redis(user_id)
+        user_data = await get_data_from_redis(user_id)
         # Получаем значение product по артикулу товара
-        product = get_product_from_data(main_sku, user_data)
+        product = await get_product_from_data(main_sku, user_data)
         # Применяем функцию edit_size
-        new_size = edit_size(product, selected_size, desired_size)
+        new_size = await edit_size(product, selected_size, desired_size)
         # Перезаписываем значение в Redis
-        save_data_to_redis(user_id, user_data)
+        await save_data_to_redis(user_id, user_data)
         # Создаем клавиатуру с основными действиями по редактированию товара
         kb = await create_edit_kb(main_sku)
         await state.clear()
@@ -598,9 +606,9 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Получаем значение цены товара
     price = product['price']
     # Создаем клавиатуру с кнопками для ввода цены или отмены
@@ -619,7 +627,7 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
 @router.message(StateFilter(FSMEditProduct.edit_price))
 async def process_price(message: Message, state: FSMContext):
     # Проверяем, что цена введена корректно
-    if check_price(message.text):
+    if await check_price(message.text):
         # Если цена введена корректно, то обновляем данные в состоянии
         await state.update_data(desired_price=message.text)
         # Получаем данные из состояния
@@ -631,13 +639,13 @@ async def process_price(message: Message, state: FSMContext):
         # получаем id пользователя
         user_id = message.from_user.id
         # Получаем все данные пользователя из Redis
-        user_data = get_data_from_redis(user_id)
+        user_data = await get_data_from_redis(user_id)
         # Получаем значение product по артикулу товара
-        product = get_product_from_data(main_sku, user_data)
+        product = await get_product_from_data(main_sku, user_data)
         # Обновляем значение цены товара с помощью функции edit_price
-        new_price = edit_price(product, desired_price)
+        await edit_price(product, desired_price)
         # Обновляем значение в Redis
-        save_data_to_redis(user_id, user_data)
+        await save_data_to_redis(user_id, user_data)
         # Очищаем состояние
         await state.clear()
         # Создаем клавиатуру с основными действиями по редактированию товара
@@ -661,9 +669,9 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Отсекаем в словаре все кроме variants
     product_variants = product['variants']
     # Создаем клавиатуру с вариантами комплектаций товара
@@ -689,11 +697,11 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Получаем значение остатка комплектации товара c помощью функции get_stock
-    stock = get_stock(product, variant_sku)
+    stock = await get_stock(product, variant_sku)
     # Создаем клавиатуру с кнопкой отмена
     kb = await create_cancel_kb()
     # Устанавливаем состояние edit_stock
@@ -710,7 +718,7 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
 @router.message(StateFilter(FSMEditProduct.edit_stock))
 async def process_stock(message: Message, state: FSMContext):
     # Проверяем, что остаток введен корректно
-    if check_stock(message.text):
+    if await check_stock(message.text):
         # Если остаток введен корректно, то обновляем данные в состоянии
         await state.update_data(desired_stock=message.text)
         # Получаем данные из состояния
@@ -724,13 +732,13 @@ async def process_stock(message: Message, state: FSMContext):
         # получаем id пользователя
         user_id = message.from_user.id
         # Получаем все данные пользователя из Redis
-        user_data = get_data_from_redis(user_id)
+        user_data = await get_data_from_redis(user_id)
         # Получаем значение product по артикулу товара
-        product = get_product_from_data(main_sku, user_data)
+        product = await get_product_from_data(main_sku, user_data)
         # Обновляем значение остатка комплектации товара c помощью функции edit_stock
-        new_stock = edit_stock(product, variant_sku, desired_stock)
+        await edit_stock(product, variant_sku, desired_stock)
         # Сохраняем данные пользователя в Redis
-        save_data_to_redis(user_id, user_data)
+        await save_data_to_redis(user_id, user_data)
         # Очищаем состояние
         await state.clear()
         # Создаем клавиатуру с основными кнопками редактирования товара
@@ -755,9 +763,9 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Создаем клавиатуру с кнопкой отмена
     kb = await cancel_and_done_kb()
     # Устанавливаем состояние edit_photo
@@ -768,7 +776,7 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     if len(product['photo_ids']) > 0:
         photo_ids = product['photo_ids']
         # Отправляем все фотографии одним сообщением
-        await callback_query.message.answer_media_group(generate_photos(photo_ids))
+        await callback_query.message.answer_media_group(await generate_photos(photo_ids))
         # Отправляем клавиатуру пользователю
         await callback_query.message.answer(text='Фото данного товара 👆🏼')
         await callback_query.message.answer(text='Хотите обновить фото?\n все предыдущие фото будут удалены.',
@@ -799,13 +807,13 @@ async def process_done_button(callback_query: CallbackQuery, state: FSMContext):
     # получаем id пользователя
     user_id = callback_query.from_user.id
     # Получает данные о пользователе из базы данных по id
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Обновляем значение фотографий товара
     product['photo_ids'] = photo_ids
     # записываем данные о пользователе в базу данных
-    save_data_to_redis(user_id, user_data)
+    await save_data_to_redis(user_id, user_data)
     # Создаем клавиатуру с основными кнопками редактирования товара
     kb = await create_edit_kb(main_sku)
     # Отправляем сообщение о том, что товар успешно добавлен
@@ -845,18 +853,18 @@ async def process_delete_product(message: Message, state: FSMContext):
     # получаем id пользователя
     user_id = message.from_user.id
     # Получаем все данные пользователя из Redis
-    user_data = get_data_from_redis(user_id)
+    user_data = await get_data_from_redis(user_id)
     # Получаем значение product по артикулу товара
-    product = get_product_from_data(main_sku, user_data)
+    product = await get_product_from_data(main_sku, user_data)
     # Если артикул товара и слово "удалить" введены корректно, то удаляем товар из Redis, очищаем состояние и
     # выводим сообщение об удалении товара
     if product and message.text == f'{main_sku} удалить':
         # Создаем клавиатуру с кнопкой отмена
         kb = await create_cancel_kb()
         # Удаляем товар из Redis
-        user_data = delete_product_from_data(main_sku, user_data)
+        user_data = await delete_product_from_data(main_sku, user_data)
         # Записываем данные о пользователе в Redis
-        save_data_to_redis(user_id, user_data)
+        await save_data_to_redis(user_id, user_data)
         await state.clear()
         await message.answer(text=f'Товар {main_sku} удален', reply_markup=kb)
     else:

@@ -1,19 +1,13 @@
 import datetime
-import json
-from pprint import pp
-
-from services.redis_server import check_and_create_structure_reports, get_data_from_redis, create_redis_client, \
-    save_data_to_redis
+from services.redis_server import check_and_create_structure_reports, get_data_from_redis, save_data_to_redis
 from aiogram.types import InputMediaPhoto
-
-r = create_redis_client()
 
 
 # Класс для создания экземпляров товаров
 # При создании экземпляра класса Product, мы передаем в него все необходимые параметры
 # и он генерирует список вариантов товара
 class Product:
-    def __init__(self, name: str, description: str, sku: str, colors: str, sizes: str, price: float,
+    def __init__(self, name: str, description: str, sku: str, colors: str, sizes: str, price: float | int | str,
                  photo_ids: list) -> None:
         self.name = name
         self.description = description
@@ -46,7 +40,7 @@ class Product:
 
 # Функция для формирования основной информации о товаре
 # На вход функция принимает словарь с информацией о товаре и формирует текстовое сообщение
-def format_main_info(product: dict, currency: str) -> str:
+async def format_main_info(product: dict, currency: str) -> str:
     response_text = f"➡ Название: {product['name']}\n" \
                     f"➡ Описание: {product['description']}\n" \
                     f"➡ Артикул: {product['sku']}\n" \
@@ -57,7 +51,7 @@ def format_main_info(product: dict, currency: str) -> str:
 
 
 # Функция получения товара по sku в словаре user_data.
-def get_product_from_data(main_sku: str, user_data: dict) -> dict or bool:
+async def get_product_from_data(main_sku: str, user_data: dict) -> dict or bool:
     # Поиск товара по sku в user_data
     for product in user_data['products']:
         d_key = list(product.keys())[0]
@@ -67,9 +61,9 @@ def get_product_from_data(main_sku: str, user_data: dict) -> dict or bool:
 
 
 # Функция проверки товара по ключу "products" в Redis
-def check_product_in_redis(user_id: str | int, main_sku: str) -> bool:
+async def check_product_in_redis(user_id: str | int, main_sku: str) -> bool:
     # Получение данных из Redis
-    data_user = get_data_from_redis(user_id)
+    data_user = await get_data_from_redis(user_id)
     # Проверка наличия sku в data_user
     for product in data_user['products']:
         d_key = list(product.keys())[0]
@@ -79,7 +73,7 @@ def check_product_in_redis(user_id: str | int, main_sku: str) -> bool:
 
 
 # Функция замены товара по артикулу из словаря user_data, обновляет артикул и удаляет старый артикул
-def remove_product_from_data(old_sku: str, new_sku: str, user_data: dict) -> dict:
+async def remove_product_from_data(old_sku: str, new_sku: str, user_data: dict) -> dict:
     # Поиск товара по sku в user_data
     for product in user_data['products']:
         d_key = list(product.keys())[0]
@@ -97,7 +91,7 @@ def remove_product_from_data(old_sku: str, new_sku: str, user_data: dict) -> dic
 
 
 # Функция удаления товара по артикулу из словаря user_data
-def delete_product_from_data(sku: str, user_data: dict) -> dict:
+async def delete_product_from_data(sku: str, user_data: dict) -> dict:
     # Поиск товара по sku в user_data
     for product in user_data['products']:
         d_key = list(product.keys())[0]
@@ -109,7 +103,7 @@ def delete_product_from_data(sku: str, user_data: dict) -> dict:
 
 # Функция для формирования сообщения со списком вариантов товара
 # На вход функция принимает список вариантов товара и формирует текстовое сообщение
-def format_variants_message(variants: list, currency: str) -> str:
+async def format_variants_message(variants: list, currency: str) -> str:
     message = "Список вариантов:\n\n"
     for variant in variants:
         color = variant['color']
@@ -126,22 +120,22 @@ def format_variants_message(variants: list, currency: str) -> str:
 
 # Функция для формирования списка фотографий товара
 # На вход функция принимает список вариантов товара и формирует список фотографий
-def generate_photos(variants: list) -> list:
+async def generate_photos(variants: list) -> list:
     photos = [photo_id['id'] for photo_id in variants[:10]]  # Используем срез [:10] для получения максимум 10 элементов
     media = [InputMediaPhoto(media=photo_id) for photo_id in photos]
     return media
 
 
 # Функция для добавления товара в проданные
-def sell_product(user_id: int, variant_sku: str, quantity: int):
+async def sell_product(user_id: int, variant_sku: str, quantity: int):
     # Обрезаем артикул до основного значения
     main_sku = variant_sku.split('-')[0]
     required = None
 
     # Получаем data_user из Redis
-    data_user = get_data_from_redis(user_id)
+    data_user = await get_data_from_redis(user_id)
     # Получаем нужный товар из data_user
-    product = get_product_from_data(main_sku, data_user)
+    product = await get_product_from_data(main_sku, data_user)
 
     # Проверяем наличие товара в базе данных
     if product is None:
@@ -164,14 +158,14 @@ def sell_product(user_id: int, variant_sku: str, quantity: int):
         # Вычитаем проданный товар из остатков
         required['stock'] -= quantity
         # Обновляем остатки товара в базе данных
-        save_data_to_redis(user_id, data_user)
+        await save_data_to_redis(user_id, data_user)
 
     # Получаем текущую дату и время
     current_date = datetime.datetime.now().strftime('%d.%m.%Y')
     current_time = datetime.datetime.now().strftime('%H:%M:%S')
 
     # Проверяем структуру reports функцией check_and_create_structure_reports
-    check_and_create_structure_reports(user_id)
+    await check_and_create_structure_reports(user_id)
 
     # Получаем текущий отчет sold_products из базы данных
     report_data_sold_today = data_user['reports'][current_date]['sold_products']
@@ -188,21 +182,21 @@ def sell_product(user_id: int, variant_sku: str, quantity: int):
     })
 
     # Cохраняем отчет в базе данных
-    save_data_to_redis(user_id, data_user)
+    await save_data_to_redis(user_id, data_user)
 
     return True
 
 
 # Функция для возврата товара и формирования отчета работает по принципу функции sell_product
-def return_product(user_id: int, variant_sku: str, quantity: int):
+async def return_product(user_id: int, variant_sku: str, quantity: int):
     # Обрезаем артикул до основного значения
     main_sku = variant_sku.split('-')[0]
     required = None
 
     # Получаем data_user из Redis
-    data_user = get_data_from_redis(user_id)
+    data_user = await get_data_from_redis(user_id)
     # Получаем нужный товар из data_user
-    product = get_product_from_data(main_sku, data_user)
+    product = await get_product_from_data(main_sku, data_user)
 
     # Проверяем наличие товара в базе данных
     if product is None:
@@ -220,14 +214,14 @@ def return_product(user_id: int, variant_sku: str, quantity: int):
     # Добавляем возвращенный товар в остатки
     required['stock'] += quantity
     # Обновляем остатки товара в базе данных
-    save_data_to_redis(user_id, data_user)
+    await save_data_to_redis(user_id, data_user)
 
     # Получаем текущую дату и время
     current_date = datetime.datetime.now().strftime('%d.%m.%Y')
     current_time = datetime.datetime.now().strftime('%H:%M:%S')
 
     # Проверяем структуру reports функцией check_and_create_structure_reports
-    check_and_create_structure_reports(user_id)
+    await check_and_create_structure_reports(user_id)
 
     # Получаем текущий отчет return_products из базы данных
     report_data_return_today = data_user['reports'][current_date]['return_products']
@@ -244,13 +238,13 @@ def return_product(user_id: int, variant_sku: str, quantity: int):
     })
 
     # Cохраняем отчет в базе данных
-    save_data_to_redis(user_id, data_user)
+    await save_data_to_redis(user_id, data_user)
 
     return True
 
 
 # Функция проверки строки на целое число в диапазоне от 1 до 100
-def check_int(value):
+async def check_int(value):
     try:
         # Преобразуем введенное значение в целое число
         number = int(value)

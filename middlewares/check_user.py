@@ -1,8 +1,7 @@
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message
-
-from services.redis_server import check_user_id_in_redis
+from services.redis_server import check_user_id_in_redis, check_and_create_structure_reports
 
 
 # Это будет inner-мидлварь на сообщения
@@ -34,6 +33,9 @@ class CheckUserCallbackMiddleware(BaseMiddleware):
     ) -> Any:
         # проверяем, есть ли пользователь в базе данных
         if await check_user_id_in_redis(event.from_user.id) or event.data == 'create_company':
+            # проверяем структуры бд
+            if await check_user_id_in_redis(event.from_user.id):
+                await check_and_create_structure_reports(event.from_user.id)
             return await handler(event, data)
         # В противном случае отвечаем на колбэк самостоятельно
         # и прекращаем дальнейшую обработку

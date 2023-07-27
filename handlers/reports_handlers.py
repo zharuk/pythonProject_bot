@@ -1,4 +1,3 @@
-# Этот модуль содержит обработчики команд связанных с отчетами
 from aiogram.dispatcher import router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery
@@ -8,6 +7,8 @@ from services.reports import get_sales_today_report
 
 router: router = router.Router()
 router.message.middleware(CheckUserMessageMiddleware())
+
+# Этот модуль содержит обработчики команд связанных с отчетами
 
 
 # Обработчик команды /report
@@ -34,7 +35,7 @@ async def process_callback_query(callback_query: CallbackQuery):
     # Получаем id пользователя
     user_id = callback_query.from_user.id
     # Получаем значение из Redis по артикулу
-    value = get_sales_today_report(user_id)
+    value = await get_sales_today_report(user_id)
     # Создаем клавиатуру с 2 кнопками
     kb = await create_back_kb()
     # Отправляем значение пользователю

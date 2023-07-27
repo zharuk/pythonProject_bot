@@ -1,9 +1,5 @@
-import asyncio
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from services.redis_server import create_redis_client, get_data_from_redis
-
-# Подключение к серверу Redis
-r = create_redis_client()
+from services.redis_server import get_data_from_redis
 
 
 # Функция для формирования клавиатуры с кнопкой "Создать компанию"
@@ -43,10 +39,10 @@ async def create_back_kb():
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
 
-# Функция для формирования инлайн-клавиатуры, где кнопки являются артикулы товаров
+# Функция для формирования клавиатуры, где кнопки являются артикулы товаров
 async def create_sku_kb(user_id):
     # получаем данные из Redis по id пользователя
-    data_user = get_data_from_redis(user_id)
+    data_user = await get_data_from_redis(user_id)
     # Инициализируем список для кнопок
     buttons = []
     # Создаем кнопки на основе ключей из data_user > products
@@ -57,12 +53,22 @@ async def create_sku_kb(user_id):
         buttons.append(InlineKeyboardButton(text=key_sku, callback_data=key_sku + '_main_sku'))
     # Сортируем кнопки по возрастанию
     buttons.sort(key=lambda x: int(x.text))
-    # Создаем кнопку "Вернутся в меню" с callback_data='start'
+
+    # Задаем количество кнопок в каждом ряду (здесь используется 8)
+    buttons_per_row = 8
+    # Разбиваем список кнопок на ряды
+    rows = [buttons[i:i + buttons_per_row] for i in range(0, len(buttons), buttons_per_row)]
+
+    # Добавляем кнопку "Добавить товар" с callback_data='add' в отдельный ряд
+    buttons_add = InlineKeyboardButton(text='📁 Создать товар', callback_data='add')
+    rows.append([buttons_add])
+
+    # Добавляем кнопку "Вернутся в меню" с callback_data='start' в отдельный ряд
     buttons_back = InlineKeyboardButton(text='↩️ Вернуться в меню', callback_data='start')
-    # Создаем список кнопок
-    inline_keyboard = [buttons, [buttons_back]]
+    rows.append([buttons_back])
+
     # Возвращаем объект инлайн-клавиатуры
-    return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 # Создаем клавиатуру с 2 кнопками отмена и готово
@@ -243,6 +249,35 @@ async def create_edit_size_kb(sizes):
 
     # Создаем список списков кнопок
     inline_keyboard = [buttons, [button_cancel]]
+
+    # Возвращаем объект инлайн-клавиатуры
+    return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+
+
+# Функция создания клавиатуры для обработчиков /settings. Функция формирует такие кнопки: "Изменить имя компании",
+# "Изменить валюту", "Добавить админа", "Добавить пользователя", "Удалить админа", "Удалить пользователя"
+# "Удалить компанию", "Вернуться в меню"
+async def create_settings_kb():
+    # Создаем кнопку "Изменить имя компании"
+    button_name = InlineKeyboardButton(text='Изменить имя компании', callback_data='edit_company_name')
+    # Создаем кнопку "Изменить валюту"
+    button_currency = InlineKeyboardButton(text='Изменить валюту', callback_data='edit_currency')
+    # Создаем кнопку "Добавить админа"
+    button_add_admin = InlineKeyboardButton(text='Добавить админа', callback_data='add_admin')
+    # Создаем кнопку "Добавить пользователя"
+    button_add_user = InlineKeyboardButton(text='Добавить пользователя', callback_data='add_user')
+    # Создаем кнопку "Удалить админа"
+    button_del_admin = InlineKeyboardButton(text='Удалить админа', callback_data='del_admin')
+    # Создаем кнопку "Удалить пользователя"
+    button_del_user = InlineKeyboardButton(text='Удалить пользователя', callback_data='del_user')
+    # Создаем кнопку "Удалить компанию"
+    button_del_company = InlineKeyboardButton(text='Удалить компанию', callback_data='del_company')
+    # Создаем кнопку "Вернуться в меню"
+    button_show = InlineKeyboardButton(text='↩️ Вернуться в меню', callback_data='start')
+
+    # Создаем список списков кнопок
+    inline_keyboard = [[button_name, button_currency], [button_add_admin, button_add_user],
+                       [button_del_admin, button_del_user], [button_del_company], [button_show]]
 
     # Возвращаем объект инлайн-клавиатуры
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
