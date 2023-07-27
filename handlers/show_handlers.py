@@ -29,6 +29,7 @@ async def process_show_command(message: Message):
     # Отправляем сообщение пользователю
     await message.answer(text='Выберите товар или добавьте новый', reply_markup=kb)
     a = await get_data_from_redis(user_id)
+    pp(a)
 
 
 # Обработчик срабатывающий на callback_data = 'show'. Функционал такой же как и у команды /show

@@ -18,6 +18,10 @@ async def create_redis_client() -> redis.Redis:
 async def check_user_id_in_redis(user_id):
     # Подключение к базе данных Redis
     r = await create_redis_client()
+    keys = r.keys()
+    print(keys)
+    decoded_a = [item.decode('utf-8') for item in keys]
+    print(decoded_a)
     # Проверка наличия ключа с id пользователя в Redis
     if r.exists(user_id):
         return True
@@ -48,15 +52,14 @@ async def edit_currency(user_id: int, new_currency: str):
 
 
 # Функция проверки id пользователя в Redis и если нет - добавление в Redis ключа с id пользователя
-async def create_company(user_id: str | int, company: str, currency: str):
+async def create_company(user_id: str | int, user_name: str, company: str, currency: str):
     # Подключение к базе данных Redis
     r = await create_redis_client()
     # Проверка наличия ключа с id пользователя в Redis
     if not r.exists(user_id):
         # Добавление ключа с id пользователя в Redis а значением будет словарь с ключами "admins" и "users" и
         # "products" и "company", в "admins" сразу добавляем id пользователя
-        r.set(user_id,
-              json.dumps({"admins": [user_id], "users": [], "currency": currency, "company": company, "products": []}))
+        r.set(user_id, json.dumps({"admins": {user_id: user_name}, "users": {}, "currency": currency, "company": company, "products": []}))
 
 
 # Функция принимающая id пользователя и возвращающая data из Redis

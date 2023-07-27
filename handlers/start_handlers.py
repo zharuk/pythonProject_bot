@@ -105,8 +105,10 @@ async def create_company_currency_handler(message: Message, state: FSMContext):
     currency = data.get('currency')
     # Сохраняем id пользователя в переменную user_id
     user_id = message.from_user.id
+    # Получаем имя пользователя
+    user_name = message.from_user.full_name
     # Вызываем функцию для создания компании в базе данных
-    await create_company(user_id, company_name, currency)
+    await create_company(user_id, user_name, company_name, currency)
     # Сбрасываем состояние FSM
     await state.clear()
     # Отправляем сообщение пользователю и клавиатуру с основными действиями

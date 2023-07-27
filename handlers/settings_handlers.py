@@ -125,3 +125,7 @@ async def process_edit_currency(message, state: FSMContext):
     await message.answer(f'Валюта успешно изменена на: {new_currency}', reply_markup=kb)
     # Скидываем состояние
     await state.clear()
+
+
+# Обработчик callback query с data = 'add_admin'
+# Выводит сообщение с просьбой ввести данные нового пользователя
